@@ -5,8 +5,7 @@ from marshmallow import Schema, fields
 from marshmallow.exceptions import ValidationError
 
 from scrabble.transport.msg import (AuthMessageRequest, AuthMessageRequestPayload, AuthMessageResponse,
-                                    AuthMessageResponsePayload, MessageType, WebsocketMessage,
-                                    WebsocketMessagePayload)
+                                    AuthMessageResponsePayload, MessageType, WebsocketMessage, WebsocketMessagePayload)
 
 AuthMessageRequestPayloadSchema = marshmallow_dataclass.class_schema(AuthMessageRequestPayload)
 AuthMessageRequestSchema = marshmallow_dataclass.class_schema(AuthMessageRequest)
