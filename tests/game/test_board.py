@@ -17,13 +17,22 @@ def test_bonus_invalid():
         Bonus(location_x=-2, location_y=0, multiplier=2)
 
 
-@pytest.mark.parametrize("width,height,bonuces", [(20, 20, []), (10, 20, [Bonus(location_x=5, location_y=6, multiplier=2)])])
+@pytest.mark.parametrize("width,height,bonuces", [
+    (20, 20, []), (10, 20, [Bonus(location_x=5, location_y=6, multiplier=2)])
+])
 def test_board_settings_serializer(width, height, bonuces):
     settings = BoardSettings(width=width, height=height, bonuces=bonuces)
-    expected_dump = {"width": width, "height": height, "bonuces": [{"location_x": b.location_x, "location_y": b.location_y, "multiplier": b.multiplier} for b in bonuces]}
+    expected_dump = {
+        "width": width,
+        "height": height,
+        "bonuces": [
+            {"location_x": b.location_x, "location_y": b.location_y, "multiplier": b.multiplier}
+            for b in bonuces
+        ]
+    }
     assert BoardSettingsSchema().dump(settings) == expected_dump
-
     assert settings == BoardSettingsSchema().load(expected_dump)
+
 
 def test_board_settings_invalid():
     with pytest.raises(ValueError):
@@ -62,7 +71,9 @@ def test_board_insert_words_invalid():
 
 
 def test_board_insert_words_bonuces():
-    board = Board(settings=BoardSettings(width=100, height=100, bonuces=[Bonus(location_x=10, location_y=10, multiplier=2), Bonus(location_x=12, location_y=10, multiplier=3)]))
+    board = Board(settings=BoardSettings(width=100, height=100, bonuces=[
+        Bonus(location_x=10, location_y=10, multiplier=2), Bonus(location_x=12, location_y=10, multiplier=3)
+    ]))
 
     assert board.insert_word(BoardWord('abacaba', 10, 10, WordDirection.DOWN)) == 7 * 2
     assert board.insert_word(BoardWord('abracadabra', 10, 10, WordDirection.RIGHT)) == 11 * (2 + 3)

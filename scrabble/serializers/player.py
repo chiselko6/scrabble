@@ -1,5 +1,10 @@
-import marshmallow_dataclass
+from marshmallow_dataclass import class_schema
 
 from scrabble.game import Player
 
-PlayerSchema = marshmallow_dataclass.class_schema(Player)
+__all__ = [
+    'PlayerSchema',
+]
+
+
+PlayerSchema = class_schema(Player)

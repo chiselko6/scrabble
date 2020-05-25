@@ -1,24 +1,20 @@
 from dataclasses import dataclass
 from typing import List
 
-from .base import Event
+from .base import Event, EventParams
+
+__all__ = [
+    'PlayerAddLettersParams',
+    'PlayerAddLettersEvent',
+]
 
 
 @dataclass
-class PlayerAddLettersParams:
+class PlayerAddLettersParams(EventParams):
     player: str
     letters: List[str]
 
 
+@dataclass
 class PlayerAddLettersEvent(Event):
     params: PlayerAddLettersParams
-
-
-@dataclass
-class PlayerScoreParams:
-    player: str
-    score: int
-
-
-class PlayerScoreEvent(Event):
-    params: PlayerScoreParams

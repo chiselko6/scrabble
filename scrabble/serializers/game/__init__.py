@@ -1,1 +1,1 @@
-from .board import BoardSettingsSchema, BonusSchema
+from .board import *  # noqa

@@ -2,6 +2,10 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Iterable, List
 
+__all__ = [
+    'Player',
+]
+
 
 @dataclass
 class Player:

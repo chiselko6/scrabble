@@ -3,6 +3,7 @@ from copy import deepcopy
 import marshmallow_dataclass
 from marshmallow import Schema, fields
 from marshmallow.exceptions import ValidationError
+from marshmallow_enum import EnumField
 
 from scrabble.transport.msg import (AuthMessageRequest, AuthMessageRequestPayload, AuthMessageResponse,
                                     AuthMessageResponsePayload, MessageType, WebsocketMessage, WebsocketMessagePayload)
@@ -14,50 +15,35 @@ AuthMessageResponseSchema = marshmallow_dataclass.class_schema(AuthMessageRespon
 WebsocketMessagePayloadSchema = marshmallow_dataclass.class_schema(WebsocketMessagePayload)
 
 
-class Enum(fields.Field):
-
-    def __init__(self, choices, **kwargs):
-        self._choices = choices
-        super().__init__(**kwargs)
-
-    def _serialize(self, value, attr, obj, **kwargs):
-        if not isinstance(value, self._choices):
-            raise ValidationError(f'{value} is not of type {self._choices}')
-
-        return value.value
-
-    def _deserialize(self, value, attr, data, **kwargs):
-        if value not in self._choices._value2member_map_:
-            raise ValidationError(f'{value} is not a member of {self._choices}')
-
-        return self._choices._value2member_map_[value]
-
-
-class MessageTypeSchema(Schema):
-    type = Enum(choices=MessageType)
-
-
 class WebsocketMessageSchema(Schema):
     payload = fields.Nested(WebsocketMessagePayloadSchema)
 
+    MESSAGE_SCHEMA_MAP = {
+        MessageType.AUTH_REQUEST: AuthMessageRequestSchema,
+        MessageType.AUTH_RESPONSE: AuthMessageResponseSchema,
+    }
+    MESSAGE_TYPE_MAP = {
+        AuthMessageRequest: MessageType.AUTH_REQUEST,
+        AuthMessageResponse: MessageType.AUTH_RESPONSE,
+    }
+
     def load(self, data) -> WebsocketMessage:
         data = deepcopy(data)
-        msg_type = Enum(choices=MessageType).deserialize(data.pop('type'))
+        msg_type = EnumField(MessageType).deserialize(data.pop('type'))
 
         if msg_type is None:
             raise ValidationError("'type' is a required attribute")
 
-        if msg_type == MessageType.AUTH_REQUEST:
-            return AuthMessageRequestSchema().load(data)
-        elif msg_type == MessageType.AUTH_RESPONSE:
-            return AuthMessageResponseSchema().load(data)
-        else:
-            return ValidationError(f'Unrecognized message type {msg_type}')
+        if msg_type not in self.MESSAGE_SCHEMA_MAP:
+            raise ValidationError(f'Unrecognized message type {msg_type}')
+
+        schema = self.MESSAGE_SCHEMA_MAP[msg_type]
+        return schema().load(data)
 
     def dump(self, obj) -> dict:
-        if isinstance(obj, AuthMessageRequest):
-            return {"type": MessageType.AUTH_REQUEST.value, **AuthMessageRequestSchema().dump(obj)}
-        elif isinstance(obj, AuthMessageResponse):
-            return {"type": MessageType.AUTH_RESPONSE.value, **AuthMessageResponseSchema().dump(obj)}
-        else:
+        if type(obj) not in self.MESSAGE_TYPE_MAP:
             raise ValidationError(f'Unrecognized object {obj}')
+
+        obj_type = self.MESSAGE_TYPE_MAP[type(obj)]
+        schema = self.MESSAGE_SCHEMA_MAP[obj_type]
+        return {"type": obj_type.name, **schema().dump(obj)}

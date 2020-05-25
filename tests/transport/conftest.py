@@ -15,7 +15,7 @@ def auth_msg_request_obj():
 @fixture
 def dumped_auth_msg_request():
     def gen(username):
-        return {"type": "auth_request", "payload": {"username": username}}
+        return {"type": "AUTH_REQUEST", "payload": {"username": username}}
 
     return gen
 
@@ -31,6 +31,6 @@ def auth_msg_response_obj():
 @fixture
 def dumped_auth_msg_response():
     def gen(ok):
-        return {"type": "auth_response", "payload": {"ok": ok}}
+        return {"type": "AUTH_RESPONSE", "payload": {"ok": ok}}
 
     return gen

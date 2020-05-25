@@ -1,6 +1,5 @@
 import pytest
 
-from scrabble.game import Player
 from scrabble.serializers.player import PlayerSchema
 
 
@@ -10,17 +9,6 @@ def test_player_serializer(username, score, letters, gen_player, gen_dumped_play
     dumped = PlayerSchema().dump(player)
     assert dumped == gen_dumped_player(username, score, letters)
     assert PlayerSchema().load(dumped) == player
-
-
-def test_player_score(gen_player):
-    player = gen_player("username", 0, [])
-    assert player.score == 0
-
-    player.add_score(100)
-    assert player.score == 100
-
-    with pytest.raises(ValueError):
-        player.add_score(-101)
 
 
 def test_player_letters(gen_player):

@@ -1,5 +1,15 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum, unique
+
+__all__ = [
+    'MessageType',
+    'WebsocketMessagePayload',
+    'WebsocketMessage',
+    'AuthMessageRequestPayload',
+    'AuthMessageResponsePayload',
+    'AuthMessageRequest',
+    'AuthMessageResponse',
+]
 
 
 @unique
@@ -15,7 +25,7 @@ class WebsocketMessagePayload:
 
 @dataclass
 class WebsocketMessage:
-    payload: WebsocketMessagePayload = field(default_factory=WebsocketMessagePayload)
+    payload: WebsocketMessagePayload
 
 
 @dataclass

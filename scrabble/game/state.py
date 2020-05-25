@@ -1,17 +1,19 @@
 from operator import methodcaller
 from typing import Iterable, List, MutableMapping, MutableSet, Optional
 
-from board import Board
-from player import Player
-
 from .api import (Event, GameInitEvent, GameInitParams, GameStartEvent, GameStartParams, PlayerAddLettersEvent,
-                  PlayerAddLettersParams, PlayerMoveEvent, PlayerMoveParams, PlayerScoreEvent, PlayerScoreParams)
+                  PlayerAddLettersParams, PlayerMoveEvent, PlayerMoveParams)
+from .board import Board
+from .player import Player
+
+__all__ = [
+    'GameState',
+]
 
 
 class GameState:
     EVENT_MAP = {
         PlayerAddLettersEvent: 'player_add_letters',
-        PlayerScoreEvent: 'player_score',
         GameInitEvent: 'game_init',
         PlayerMoveEvent: 'player_move',
         GameStartEvent: 'game_start',
@@ -38,11 +40,6 @@ class GameState:
         player = self._players_by_username[params.player]
 
         player.add_letters(params.letters)
-
-    def event__player_score(self, params: PlayerScoreParams):
-        player = self._players_by_username[params.player]
-
-        player.add_score(params.score)
 
     def event__game_init(self, params: GameInitParams):
         self._board = Board(params.board_settings)

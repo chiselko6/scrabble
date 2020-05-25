@@ -4,6 +4,14 @@ from typing import List, Optional
 
 from . import constants
 
+__all__ = [
+    'WordDirection',
+    'Bonus',
+    'BoardSettings',
+    'BoardWord',
+    'Board',
+]
+
 
 @unique
 class WordDirection(Enum):
