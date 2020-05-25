@@ -5,8 +5,21 @@ from marshmallow import Schema, fields
 from marshmallow.exceptions import ValidationError
 from marshmallow_enum import EnumField
 
-from scrabble.transport.msg import (AuthMessageRequest, AuthMessageRequestPayload, AuthMessageResponse,
-                                    AuthMessageResponsePayload, MessageType, WebsocketMessage, WebsocketMessagePayload)
+from scrabble.transport import (AuthMessageRequest, AuthMessageRequestPayload, AuthMessageResponse,
+                                AuthMessageResponsePayload, EventMessage, MessageType, WebsocketMessage,
+                                WebsocketMessagePayload)
+
+from .event import EventMessageSchema
+
+__all__ = [
+    'AuthMessageRequestPayloadSchema',
+    'AuthMessageRequestSchema',
+    'AuthMessageResponsePayloadSchema',
+    'AuthMessageResponseSchema',
+    'WebsocketMessagePayloadSchema',
+    'WebsocketMessageSchema',
+]
+
 
 AuthMessageRequestPayloadSchema = marshmallow_dataclass.class_schema(AuthMessageRequestPayload)
 AuthMessageRequestSchema = marshmallow_dataclass.class_schema(AuthMessageRequest)
@@ -21,13 +34,15 @@ class WebsocketMessageSchema(Schema):
     MESSAGE_SCHEMA_MAP = {
         MessageType.AUTH_REQUEST: AuthMessageRequestSchema,
         MessageType.AUTH_RESPONSE: AuthMessageResponseSchema,
+        MessageType.EVENT: EventMessageSchema,
     }
     MESSAGE_TYPE_MAP = {
         AuthMessageRequest: MessageType.AUTH_REQUEST,
         AuthMessageResponse: MessageType.AUTH_RESPONSE,
+        EventMessage: MessageType.EVENT,
     }
 
-    def load(self, data) -> WebsocketMessage:
+    def load(self, data, **kwargs) -> WebsocketMessage:
         data = deepcopy(data)
         msg_type = EnumField(MessageType).deserialize(data.pop('type'))
 
@@ -38,12 +53,12 @@ class WebsocketMessageSchema(Schema):
             raise ValidationError(f'Unrecognized message type {msg_type}')
 
         schema = self.MESSAGE_SCHEMA_MAP[msg_type]
-        return schema().load(data)
+        return schema().load(data, **kwargs)
 
-    def dump(self, obj) -> dict:
+    def dump(self, obj, **kwargs) -> dict:
         if type(obj) not in self.MESSAGE_TYPE_MAP:
             raise ValidationError(f'Unrecognized object {obj}')
 
         obj_type = self.MESSAGE_TYPE_MAP[type(obj)]
         schema = self.MESSAGE_SCHEMA_MAP[obj_type]
-        return {"type": obj_type.name, **schema().dump(obj)}
+        return {"type": obj_type.name, **schema().dump(obj, **kwargs)}

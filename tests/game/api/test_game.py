@@ -39,8 +39,10 @@ def test_game_init_serializer(players, width, height, bonuces):
 ])
 def test_game_start_serializer(player_to_start):
     timestamp = int(datetime.timestamp(datetime.now()))
-    event = GameStartEvent(timestamp=timestamp, params=GameStartParams(player_to_start=player_to_start))
-    expected_dump = {"name": "GAME_START", "timestamp": timestamp, "params": {"player_to_start": player_to_start}}
+    event = GameStartEvent(timestamp=timestamp,
+                           params=GameStartParams(player_to_start=player_to_start))
+    expected_dump = {"name": "GAME_START", "timestamp": timestamp,
+                     "params": {"player_to_start": player_to_start}}
 
     assert EventSchema().dump(event) == expected_dump
     assert EventSchema().load(expected_dump) == event

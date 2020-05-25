@@ -22,8 +22,8 @@ EventParamsSchema = class_schema(EventParams)
 
 
 class EventSchema(Schema):
-    timestamp: fields.Integer()
-    payload: fields.Nested(EventParamsSchema)
+    timestamp = fields.Integer()
+    payload = fields.Nested(EventParamsSchema)
 
     EVENT_NAME_SCHEMA_MAP = {
         EventName.PLAYER_ADD_LETTERS: PlayerAddLettersEventSchema,
@@ -38,7 +38,7 @@ class EventSchema(Schema):
         GameStartEvent: EventName.GAME_START,
     }
 
-    def load(self, data) -> Event:
+    def load(self, data, **kwargs) -> Event:
         data = deepcopy(data)
         event_name = EnumField(EventName).deserialize(data.pop('name'))
 
@@ -49,12 +49,12 @@ class EventSchema(Schema):
             raise ValidationError(f"Couldn't find event name {event_name}")
 
         schema = self.EVENT_NAME_SCHEMA_MAP[event_name]
-        return schema().load(data)
+        return schema().load(data, **kwargs)
 
-    def dump(self, obj) -> dict:
+    def dump(self, obj, **kwargs) -> dict:
         if type(obj) not in self.EVENT_TYPE_NAME_MAP:
             raise ValidationError(f'Unrecognized object type {type(obj)}')
 
         event_name = self.EVENT_TYPE_NAME_MAP[type(obj)]
         schema = self.EVENT_NAME_SCHEMA_MAP[event_name]
-        return {"name": event_name.name, **schema().dump(obj)}
+        return {"name": event_name.name, **schema().dump(obj, **kwargs)}

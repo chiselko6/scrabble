@@ -30,25 +30,25 @@ class GameState:
             for event in events:
                 self.apply_event(event)
 
-    def apply_event(self, event):
+    def apply_event(self, event: Event) -> None:
         if type(event) in self.EVENT_MAP:
             methodcaller(self, f'event__{self.EVENT_MAP[type(event)]}')
         else:
             raise ValueError(f'Unknown event {event}')
 
-    def event__player_add_letters(self, params: PlayerAddLettersParams):
+    def event__player_add_letters(self, params: PlayerAddLettersParams) -> None:
         player = self._players_by_username[params.player]
 
         player.add_letters(params.letters)
 
-    def event__game_init(self, params: GameInitParams):
+    def event__game_init(self, params: GameInitParams) -> None:
         self._board = Board(params.board_settings)
         for username in params.players:
             player = Player(username=username)
             self._players_order.append(player)
             self._players_by_username[username] = player
 
-    def event__game_start(self, params: GameStartParams):
+    def event__game_start(self, params: GameStartParams) -> None:
         if params.player_to_start is None:
             self._player_idx_turn = 0
             return
@@ -60,7 +60,7 @@ class GameState:
 
         raise ValueError('Unknown player to start')
 
-    def event__player_move(self, params: PlayerMoveParams):
+    def event__player_move(self, params: PlayerMoveParams) -> None:
         player = self._players_by_username[params.player]
         if self._players_order[self._player_idx_turn] != player:
             raise ValueError('Player cannot do any moves now')
@@ -73,8 +73,8 @@ class GameState:
         self._player_idx_turn += 1
         self._player_idx_turn %= len(self._players_order)
 
-    def connect_player(self, player_username):
+    def connect_player(self, player_username) -> None:
         self._players_connected.add(player_username)
 
-    def disconnect_player(self, player_username):
+    def disconnect_player(self, player_username) -> None:
         self._players_connected.remove(player_username)

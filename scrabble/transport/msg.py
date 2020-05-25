@@ -1,8 +1,6 @@
 from dataclasses import dataclass
-from enum import Enum, unique
 
 __all__ = [
-    'MessageType',
     'WebsocketMessagePayload',
     'WebsocketMessage',
     'AuthMessageRequestPayload',
@@ -10,12 +8,6 @@ __all__ = [
     'AuthMessageRequest',
     'AuthMessageResponse',
 ]
-
-
-@unique
-class MessageType(Enum):
-    AUTH_REQUEST = 'auth_request'
-    AUTH_RESPONSE = 'auth_response'
 
 
 @dataclass
