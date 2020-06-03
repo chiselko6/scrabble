@@ -6,7 +6,8 @@ from marshmallow.exceptions import ValidationError
 from marshmallow_enum import EnumField
 
 from scrabble.transport import (AuthMessageRequest, AuthMessageRequestPayload, AuthMessageResponse,
-                                AuthMessageResponsePayload, EventMessage, MessageType, WebsocketMessage,
+                                AuthMessageResponsePayload, EndConnectionMessage, EndConnectionPayload, EventMessage,
+                                MessageType, NewConnectionMessage, NewConnectionPayload, WebsocketMessage,
                                 WebsocketMessagePayload)
 
 from .event import EventMessageSchema
@@ -16,6 +17,10 @@ __all__ = [
     'AuthMessageRequestSchema',
     'AuthMessageResponsePayloadSchema',
     'AuthMessageResponseSchema',
+    'NewConnectionPayloadSchema',
+    'NewConnectionMessageSchema',
+    'EndConnectionPayloadSchema',
+    'EndConnectionMessageSchema',
     'WebsocketMessagePayloadSchema',
     'WebsocketMessageSchema',
 ]
@@ -25,6 +30,10 @@ AuthMessageRequestPayloadSchema = marshmallow_dataclass.class_schema(AuthMessage
 AuthMessageRequestSchema = marshmallow_dataclass.class_schema(AuthMessageRequest)
 AuthMessageResponsePayloadSchema = marshmallow_dataclass.class_schema(AuthMessageResponsePayload)
 AuthMessageResponseSchema = marshmallow_dataclass.class_schema(AuthMessageResponse)
+NewConnectionPayloadSchema = marshmallow_dataclass.class_schema(NewConnectionPayload)
+NewConnectionMessageSchema = marshmallow_dataclass.class_schema(NewConnectionMessage)
+EndConnectionPayloadSchema = marshmallow_dataclass.class_schema(EndConnectionPayload)
+EndConnectionMessageSchema = marshmallow_dataclass.class_schema(EndConnectionMessage)
 WebsocketMessagePayloadSchema = marshmallow_dataclass.class_schema(WebsocketMessagePayload)
 
 
@@ -34,11 +43,15 @@ class WebsocketMessageSchema(Schema):
     MESSAGE_SCHEMA_MAP = {
         MessageType.AUTH_REQUEST: AuthMessageRequestSchema,
         MessageType.AUTH_RESPONSE: AuthMessageResponseSchema,
+        MessageType.NEW_CONNECTION: NewConnectionMessageSchema,
+        MessageType.END_CONNECTION: EndConnectionMessageSchema,
         MessageType.EVENT: EventMessageSchema,
     }
     MESSAGE_TYPE_MAP = {
         AuthMessageRequest: MessageType.AUTH_REQUEST,
         AuthMessageResponse: MessageType.AUTH_RESPONSE,
+        NewConnectionMessage: MessageType.NEW_CONNECTION,
+        EndConnectionMessage: MessageType.END_CONNECTION,
         EventMessage: MessageType.EVENT,
     }
 

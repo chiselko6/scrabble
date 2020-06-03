@@ -2,6 +2,8 @@ from copy import deepcopy
 from dataclasses import dataclass, field
 from typing import Iterable, List
 
+from .constants import PLAYER_MAX_LETTERS
+
 __all__ = [
     'Player',
 ]
@@ -21,8 +23,8 @@ class Player:
                 raise ValueError('Letters must be 1-length')
 
         new_player_letters.extend(letters)
-        if len(new_player_letters) != 7:
-            raise ValueError('Total #letters must be 7')
+        if len(new_player_letters) != PLAYER_MAX_LETTERS:
+            raise ValueError(f'Total #letters must be {PLAYER_MAX_LETTERS}')
 
         self.letters = new_player_letters
 

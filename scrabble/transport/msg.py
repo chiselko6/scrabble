@@ -7,6 +7,10 @@ __all__ = [
     'AuthMessageResponsePayload',
     'AuthMessageRequest',
     'AuthMessageResponse',
+    'NewConnectionPayload',
+    'NewConnectionMessage',
+    'EndConnectionPayload',
+    'EndConnectionMessage',
 ]
 
 
@@ -38,3 +42,23 @@ class AuthMessageRequest(WebsocketMessage):
 @dataclass
 class AuthMessageResponse(WebsocketMessage):
     payload: AuthMessageResponsePayload
+
+
+@dataclass
+class NewConnectionPayload(WebsocketMessagePayload):
+    username: str
+
+
+@dataclass
+class NewConnectionMessage(WebsocketMessage):
+    payload: NewConnectionPayload
+
+
+@dataclass
+class EndConnectionPayload(WebsocketMessagePayload):
+    username: str
+
+
+@dataclass
+class EndConnectionMessage(WebsocketMessage):
+    payload: EndConnectionPayload

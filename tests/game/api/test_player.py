@@ -13,9 +13,9 @@ from scrabble.serializers.game.api import EventSchema
 ])
 def test_player_add_letters_serializer(username, letters):
     timestamp = int(datetime.timestamp(datetime.now()))
-    event = PlayerAddLettersEvent(timestamp=timestamp,
+    event = PlayerAddLettersEvent(timestamp=timestamp, sequence=3,
                                   params=PlayerAddLettersParams(player=username, letters=letters))
-    expected_dump = {"name": "PLAYER_ADD_LETTERS", "timestamp": timestamp,
+    expected_dump = {"name": "PLAYER_ADD_LETTERS", "timestamp": timestamp, "sequence": 3,
                      "params": {"player": username, "letters": letters}}
 
     assert EventSchema().dump(event) == expected_dump

@@ -1,4 +1,5 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+from datetime import datetime
 from enum import Enum, unique
 
 __all__ = [
@@ -23,5 +24,6 @@ class EventParams:
 
 @dataclass
 class Event:
-    timestamp: int
     params: EventParams
+    sequence: int
+    timestamp: int = field(default_factory=lambda: int(datetime.timestamp(datetime.now())))

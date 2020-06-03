@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from typing import List
 
-from scrabble.game.board import BoardWord
+from scrabble.game.board import BoardWords
 
 from .base import Event, EventParams
 
@@ -14,7 +14,8 @@ __all__ = [
 @dataclass
 class PlayerMoveParams(EventParams):
     player: str
-    words: List[BoardWord]
+    words: BoardWords
+    exchange_letters: List[str]
 
 
 @dataclass

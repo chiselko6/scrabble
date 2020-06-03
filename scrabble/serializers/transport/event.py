@@ -12,7 +12,6 @@ __all__ = [
 
 class EventMessagePayloadSchema(Schema):
     event = fields.Nested(EventSchema)
-    status = EnumField(EventStatus)
 
     @post_load
     def make(self, data, **kwargs) -> EventMessagePayload:
@@ -21,6 +20,7 @@ class EventMessagePayloadSchema(Schema):
 
 class EventMessageSchema(Schema):
     payload = fields.Nested(EventMessagePayloadSchema)
+    status = EnumField(EventStatus)
 
     @post_load
     def make(self, data, **kwargs) -> EventMessage:

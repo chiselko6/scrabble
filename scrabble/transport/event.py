@@ -16,14 +16,15 @@ __all__ = [
 class EventStatus(Enum):
     REQUESTED = 'requested'
     APPROVED = 'approved'
+    REJECTED = 'rejected'
 
 
 @dataclass
 class EventMessagePayload(WebsocketMessagePayload):
     event: Event
-    status: EventStatus
 
 
 @dataclass
 class EventMessage(WebsocketMessage):
     payload: EventMessagePayload
+    status: EventStatus
