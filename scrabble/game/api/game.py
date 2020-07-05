@@ -17,6 +17,7 @@ __all__ = [
 class GameInitParams(EventParams):
     players: List[str]
     board_settings: BoardSettings
+    letters: List[str]
 
 
 @dataclass

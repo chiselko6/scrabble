@@ -7,26 +7,28 @@ from scrabble.game.api import GameInitEvent, GameInitParams, GameStartEvent, Gam
 from scrabble.serializers.game.api import EventSchema
 
 
-@pytest.mark.parametrize("players,width,height,init_word,bonuses", [
-    (["user1", "user2"], 20, 40,
+@pytest.mark.parametrize("players,letters,width,height,init_word,bonuses", [
+    (["user1", "user2"], ['a', 'b', 'c', 'd'], 20, 40,
      BoardWord(word='qqq', start_x=3, start_y=4, direction=WordDirection.RIGHT),
      [Bonus(10, 10, 2)]),
-    (["user1", "user2", "user3"], 10, 10,
+    (["user1", "user2", "user3"], [], 10, 10,
      BoardWord(word='init_word', start_x=2, start_y=1, direction=WordDirection.DOWN),
      [Bonus(2, 2, 1), Bonus(3, 4, 4)]),
-    (["user1"], 100, 20, None, []),
+    (["user1"], ['a', 'a', 'a'], 100, 20, None, []),
 ])
-def test_game_init_serializer(players, width, height, init_word, bonuses):
+def test_game_init_serializer(players, letters, width, height, init_word, bonuses):
     timestamp = int(datetime.timestamp(datetime.now()))
     event = GameInitEvent(timestamp=timestamp,
                           sequence=1,
                           params=GameInitParams(
                               players=players,
+                              letters=letters,
                               board_settings=BoardSettings(width=width, height=height,
                                                            init_word=init_word, bonuses=bonuses)
                           ))
     expected_dump = {"name": "GAME_INIT", "timestamp": timestamp, "sequence": 1,
                      "params": {"players": players,
+                                "letters": letters,
                                 "board_settings": {"width": width, "height": height, "init_word": None, "bonuses": [
                                     {
                                         "location_x": bonus.location_x,

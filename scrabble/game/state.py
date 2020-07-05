@@ -25,6 +25,7 @@ class GameState:
         self._players_connected: MutableSet[str] = set()
         self._player_idx_turn: Optional[int] = None
         self._board: Optional[Board] = None
+        self._letters: Optional[List[str]] = None
         self._sequence = 0
 
         if events:
@@ -34,6 +35,10 @@ class GameState:
     @property
     def latest_event_sequence(self) -> int:
         return self._sequence
+
+    @property
+    def letters(self) -> List[str]:
+        return list(self._letters)
 
     def apply_event(self, event: Event) -> None:
         if self.latest_event_sequence + 1 != event.sequence:
@@ -62,10 +67,15 @@ class GameState:
     def event__player_add_letters(self, params: PlayerAddLettersParams) -> None:
         player = self._players_by_username[params.player]
 
+        for letter in params.letters:
+            self._letters.remove(letter)
         player.fulfil_letters(params.letters)
 
     def event__game_init(self, params: GameInitParams) -> None:
         self._board = Board(params.board_settings)
+
+        self._letters = list(params.letters)
+
         for username in params.players:
             player = Player(username=username)
             self._players_order.append(player)
