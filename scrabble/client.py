@@ -1,6 +1,6 @@
 import asyncio
 import json
-from typing import Callable, Optional
+from typing import Callable, Optional, cast
 
 import websockets
 
@@ -14,7 +14,6 @@ class Client:
                  on_new_msg: Optional[Callable[[WebsocketMessage], None]] = None,
                  on_connected: Optional[Callable[[], None]] = None,
                  on_disconnected: Optional[Callable[[], None]] = None):
-        self._server = None
         self._username = username
         self._on_new_msg = on_new_msg
         self._on_connected = on_connected
@@ -33,7 +32,7 @@ class Client:
         try:
             while True:
                 async for raw_msg in self._server:
-                    msg = self.from_ws_msg(raw_msg)
+                    msg = self.from_ws_msg(cast(str, raw_msg))
                     print('Recv', msg)
                     if self._on_new_msg is not None:
                         self._on_new_msg(msg)
@@ -52,7 +51,7 @@ class Client:
 
                     await self.send(AuthMessageRequest(AuthMessageRequestPayload(username=self._username)))
                     raw_response = await ws.recv()
-                    response_msg = self.from_ws_msg(raw_response)
+                    response_msg = self.from_ws_msg(cast(str, raw_response))
                     if isinstance(response_msg, AuthMessageResponse) and response_msg.payload.ok:
                         print('Authorized')
                         await self._consume()

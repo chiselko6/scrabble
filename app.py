@@ -29,11 +29,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.app == 'host':
-        engine = ServerEngine(game_id=args.game_id)
-        engine.run()
+        server_engine = ServerEngine(game_id=args.game_id)
+        server_engine.run()
     elif args.app == 'player':
-        engine = ClientEngine(args.username, (args.host, args.port), debug=args.debug)
+        client_engine = ClientEngine(args.username, (args.host, args.port), debug=args.debug)
 
-        t = Thread(target=engine.run)
+        t = Thread(target=client_engine.run)
         t.start()
         t.join()

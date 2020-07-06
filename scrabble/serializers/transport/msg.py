@@ -1,4 +1,5 @@
 from copy import deepcopy
+from typing import Mapping, Type
 
 import marshmallow_dataclass
 from marshmallow import Schema, fields
@@ -40,7 +41,7 @@ WebsocketMessagePayloadSchema = marshmallow_dataclass.class_schema(WebsocketMess
 class WebsocketMessageSchema(Schema):
     payload = fields.Nested(WebsocketMessagePayloadSchema)
 
-    MESSAGE_SCHEMA_MAP = {
+    MESSAGE_SCHEMA_MAP: Mapping[MessageType, Type[Schema]] = {
         MessageType.AUTH_REQUEST: AuthMessageRequestSchema,
         MessageType.AUTH_RESPONSE: AuthMessageResponseSchema,
         MessageType.NEW_CONNECTION: NewConnectionMessageSchema,

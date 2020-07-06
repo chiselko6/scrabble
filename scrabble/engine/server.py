@@ -6,7 +6,7 @@ from itertools import chain
 from pathlib import Path
 from random import choices
 from threading import Thread
-from typing import List, Optional
+from typing import List, MutableSet, Optional
 
 from scrabble.game import BoardSettings, BoardWord, Bonus, GameState, LetterBag, WordDirection
 from scrabble.game.api import (Event, GameInitEvent, GameInitParams, GameStartEvent, GameStartParams,
@@ -27,9 +27,8 @@ class ServerEngine:
 
     def __init__(self, game_id: Optional[str] = None) -> None:
         self._events: List[Event] = []
-        self._server_loop = None
         self._server = Server(on_new_conn=self._on_new_conn, on_new_msg=self._on_new_msg)
-        self._players = set()
+        self._players: MutableSet[str] = set()
 
         if game_id is not None:
             self._load_events(game_id)
@@ -55,8 +54,8 @@ class ServerEngine:
                 if isinstance(event, PlayerMoveEvent):
                     player_username = event.params.player
 
-                    player = self.game_state.get_player_state(player_username)
-                    new_letters = choices(string.ascii_lowercase, k=PLAYER_MAX_LETTERS - len(player.letters))
+                    player_state = self.game_state.get_player_state(player_username)
+                    new_letters = choices(string.ascii_lowercase, k=PLAYER_MAX_LETTERS - len(player_state.letters))
                     if new_letters:
                         add_letters_event = PlayerAddLettersEvent(
                             params=PlayerAddLettersParams(player=player_username, letters=new_letters),

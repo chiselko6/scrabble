@@ -29,6 +29,9 @@ jobs:
     - name: Lint with isort
       run: |
         isort -c
+    - name: Lint with mypy
+      run: |
+        mypy --ignore-missing-imports scrabble/ tests/ app.py
     - name: Test with pytest
       run: |
         python -m pytest tests/ -vvv
