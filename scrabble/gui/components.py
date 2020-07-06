@@ -1,4 +1,4 @@
-from typing import Any, Optional
+from typing import Any, List, Optional
 
 __all__ = [
     'TextBox',
@@ -15,7 +15,7 @@ class TextBox:
         self._width = min_width
         self._height = min_height
         self._attrs = attrs
-        self._lines = []
+        self._lines: List[str] = []
 
     @property
     def x(self) -> int:
@@ -29,13 +29,13 @@ class TextBox:
     def width(self) -> int:
         return self._width
 
-    @property
-    def height(self) -> int:
-        return self._height
-
     @width.setter
     def width(self, value: int) -> None:
         self._width = max(value, self._min_width)
+
+    @property
+    def height(self) -> int:
+        return self._height
 
     @height.setter
     def height(self, value: int) -> None:

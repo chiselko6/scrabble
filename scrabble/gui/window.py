@@ -3,7 +3,7 @@ import sys
 from copy import deepcopy
 from dataclasses import dataclass, field
 from time import sleep
-from typing import Callable, Iterable, List, Optional, Tuple
+from typing import Callable, Iterable, List, MutableSet, Optional, Tuple
 
 from .components import TextBox
 from .constants import (CONFIRMATION_DIALOG_X, CONFIRMATION_DIALOG_Y, DEBUG_BOX_X, DEBUG_BOX_Y, GRID_HEIGHT, GRID_WIDTH,
@@ -48,12 +48,14 @@ class WindowWord:
         self.letters.append(letter)
 
     def pop_letter(self, x: Optional[int] = None, y: Optional[int] = None) -> str:
-        assert (x is None and y is None) or (x is not None and y is not None)
-
         if x is None:
+            assert y is None
+
             self.path.pop()
             return self.letters.pop()
         else:
+            assert y is not None
+
             if (x, y) not in self.path:
                 raise KeyError()
             else:
@@ -118,7 +120,7 @@ class WindowBonuses:
 
 class Window:
 
-    def __init__(self, player: str, callback_config: Optional[CallbackConfig] = None):
+    def __init__(self, player: str, callback_config: Optional[CallbackConfig] = None) -> None:
         self._editor_mode: EditorMode = EditorMode.VIEW
         self._can_change_editor_mode = False
         self._insert_mode_direction: Optional[InsertDirection] = None
@@ -133,14 +135,14 @@ class Window:
         self._running = False
 
         self._player = player
-        self._player_turn = None
-        self._players = []
+        self._player_turn: Optional[str] = None
+        self._players: List[str] = []
         self._players_scores = {player: 0 for player in self._players}
-        self._players_connected = set()
+        self._players_connected: MutableSet[str] = set()
         self._player_letters: List[str] = []
         self._player_letters_to_remove: List[str] = []
 
-        self._callbacks = callback_config
+        self._callbacks = callback_config or CallbackConfig()
 
         self._show_confirmation_dialog = False
         self._confirmation_callback: Optional[Callable[[], None]] = None
@@ -150,14 +152,14 @@ class Window:
             if ss:
                 self.debug(ss)
             return len(s)
-        sys.stdout.write = write
+        sys.stdout.write = write  # type: ignore
         # sys.stderr.write = write
 
     @property
     def running(self) -> bool:
         return self._running
 
-    def set_debug(self) -> bool:
+    def set_debug(self) -> None:
         self._show_debug = True
 
     def set_player_turn(self, player: str) -> None:
@@ -239,7 +241,7 @@ class Window:
     def update_player_letters(self, letters: Iterable[str]) -> None:
         assert all([len(letter) == 1 for letter in letters])
 
-        self._player_letters = letters
+        self._player_letters = list(letters)
         self._player_letters_to_remove.clear()
         self.draw()
 
@@ -408,7 +410,10 @@ class Window:
                                       word.path[0][1],
                                       ''.join(word.letters), direction))
 
-        self._callbacks.on_player_move(player_move_words, self._player_letters_to_remove)
+        cb = self._callbacks.on_player_move
+        assert cb is not None
+
+        cb(player_move_words, self._player_letters_to_remove)
 
     def run(self, window):
         self._running = True

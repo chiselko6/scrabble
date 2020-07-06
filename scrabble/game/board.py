@@ -216,7 +216,7 @@ class Board:
         new_letters: List[str] = []
         new_letters_positions = new_words_positions.difference(current_words_positions)
         for position in new_letters_positions:
-            new_letters.append(words.letter_at(position[0], position[1]))
+            new_letters.append(words.letter_at(position[0], position[1]))  # type: ignore
 
         return new_letters
 

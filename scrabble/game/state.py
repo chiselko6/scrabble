@@ -24,8 +24,7 @@ class GameState:
         self._players_by_username: MutableMapping[str, Player] = {}
         self._players_connected: MutableSet[str] = set()
         self._player_idx_turn: Optional[int] = None
-        self._board: Optional[Board] = None
-        self._letters: Optional[List[str]] = None
+        self._letters: List[str] = []
         self._sequence = 0
 
         if events:
@@ -94,6 +93,8 @@ class GameState:
         raise ValueError('Unknown player to start')
 
     def event__player_move(self, params: PlayerMoveParams) -> None:
+        assert self._player_idx_turn is not None
+
         player = self._players_by_username[params.player]
         if self._players_order[self._player_idx_turn] != player:
             raise ValueError('Player cannot do any moves now')

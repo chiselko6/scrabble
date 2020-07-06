@@ -1,7 +1,7 @@
 import asyncio
 import curses
 from threading import Thread
-from typing import Iterable, List, Tuple
+from typing import Iterable, List, Tuple, cast
 
 from scrabble.client import Client
 from scrabble.game import BoardWord, BoardWords, GameState, WordDirection
@@ -21,14 +21,13 @@ class ClientEngine:
     def __init__(self, player: str, addr: Tuple[str, str], *, debug: bool = False) -> None:
         self._events: List[Event] = []
         self._player = player
-        self._players = []
+        self._players: List[str] = []
         self._window = Window(player, CallbackConfig(on_player_move=self._on_player_move))
         if debug:
             self._window.set_debug()
 
         self._client = Client(player, on_new_msg=self._on_client_msg,
                               on_connected=self._on_server_connected, on_disconnected=self._on_server_disconnected)
-        self._client_loop = None
 
         self._server_addr = addr
 
@@ -109,18 +108,16 @@ class ClientEngine:
             self._apply_event(event)
 
     def _gui_apply_event(self, event: Event) -> None:
-        handlers = {
-            GameInitEvent: self._gui_apply__game_init,
-            GameStartEvent: self._gui_apply__game_start,
-            PlayerAddLettersEvent: self._gui_apply__player_add_letters,
-            PlayerMoveEvent: self._gui_apply__player_move,
-        }
-        handler = handlers.get(type(event))
-
-        if handler is None:
+        if isinstance(event, GameInitEvent):
+            self._gui_apply__game_init(event)
+        elif isinstance(event, GameStartEvent):
+            self._gui_apply__game_start(event)
+        elif isinstance(event, PlayerAddLettersEvent):
+            self._gui_apply__player_add_letters(event)
+        elif isinstance(event, PlayerMoveEvent):
+            self._gui_apply__player_move(event)
+        else:
             raise ValueError(f'Unknown event {event}')
-
-        handler(event)
 
     def _gui_apply__game_init(self, event: GameInitEvent) -> None:
         for player in event.params.players:
@@ -135,10 +132,7 @@ class ClientEngine:
             self._window.add_bonus(bonus.location_x, bonus.location_y, bonus.multiplier)
 
     def _gui_apply__game_start(self, event: GameStartEvent) -> None:
-        player_to_move = self.game_state.player_to_move
-        assert player_to_move is not None
-
-        self._window.set_player_turn(self.game_state.player_to_move)
+        self._window.set_player_turn(cast(str, self.game_state.player_to_move))
 
     def _gui_apply__player_add_letters(self, event: PlayerAddLettersEvent) -> None:
         if self._player == event.params.player:
@@ -149,7 +143,7 @@ class ClientEngine:
             self._window.add_grid_word(word.start_x, word.start_y, word.word, word.direction.value)
         score = self.game_state.get_player_score(event.params.player)
         self._window.update_player_score(event.params.player, score)
-        self._window.set_player_turn(self.game_state.player_to_move)
+        self._window.set_player_turn(cast(str, self.game_state.player_to_move))
 
     def run(self) -> None:
         gui_thread = Thread(target=self._run_gui)
