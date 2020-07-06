@@ -18,7 +18,7 @@ __all__ = [
 
 class ClientEngine:
 
-    def __init__(self, player: str, addr: Tuple[str, str], *, debug: bool = False) -> None:
+    def __init__(self, player: str, *, debug: bool = False) -> None:
         self._events: List[Event] = []
         self._player = player
         self._players: List[str] = []
@@ -28,8 +28,6 @@ class ClientEngine:
 
         self._client = Client(player, on_new_msg=self._on_client_msg,
                               on_connected=self._on_server_connected, on_disconnected=self._on_server_disconnected)
-
-        self._server_addr = addr
 
     @property
     def game_state(self) -> GameState:
@@ -74,13 +72,15 @@ class ClientEngine:
     def _run_gui(self) -> None:
         curses.wrapper(self._window.run)
 
-    def _run_client(self) -> None:
+    def _run_client(self, host: str, port: int) -> None:
         loop = asyncio.new_event_loop()
         self._client_loop = loop
         asyncio.set_event_loop(loop)
 
-        loop.run_until_complete(self._client.start(self._server_addr))
-        loop.run_forever()
+        try:
+            loop.run_until_complete(self._client.start((host, port)))
+        finally:
+            loop.run_until_complete(loop.shutdown_asyncgens())
 
     def _on_client_msg(self, msg: WebsocketMessage) -> None:
         if isinstance(msg, EventMessage):
@@ -145,12 +145,14 @@ class ClientEngine:
         self._window.update_player_score(event.params.player, score)
         self._window.set_player_turn(cast(str, self.game_state.player_to_move))
 
-    def run(self) -> None:
+    def run(self, host: str, port: str) -> None:
         gui_thread = Thread(target=self._run_gui)
-        client_thread = Thread(target=self._run_client)
+        client_thread = Thread(target=self._run_client, args=(host, port))
 
         gui_thread.start()
         client_thread.start()
 
         gui_thread.join()
+
+        self._client.stop()
         client_thread.join()

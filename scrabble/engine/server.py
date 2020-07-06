@@ -6,6 +6,7 @@ from itertools import chain
 from pathlib import Path
 from random import choices
 from threading import Thread
+from time import sleep
 from typing import List, MutableSet, Optional
 
 from scrabble.game import BoardSettings, BoardWord, Bonus, GameState, LetterBag, WordDirection
@@ -27,8 +28,10 @@ class ServerEngine:
 
     def __init__(self, game_id: Optional[str] = None) -> None:
         self._events: List[Event] = []
-        self._server = Server(on_new_conn=self._on_new_conn, on_new_msg=self._on_new_msg)
         self._players: MutableSet[str] = set()
+        self._server = Server(on_new_conn=self._on_new_conn,
+                              on_new_msg=self._on_new_msg,
+                              on_end_conn=self._on_end_conn)
 
         if game_id is not None:
             self._load_events(game_id)
@@ -69,6 +72,10 @@ class ServerEngine:
 
         for event in self._events:
             self._send(player, self._wrap_event(event))
+
+    def _on_end_conn(self, player: str) -> None:
+        print('Disconnected player', player)
+        self._players.remove(player)
 
     def _publish(self, msg: WebsocketMessage) -> None:
         self._server_loop.create_task(self._server.publish(msg))
@@ -120,18 +127,20 @@ class ServerEngine:
             event_msg = self._wrap_event(event)
             self._publish(event_msg)
 
-    def _run_server(self):
-        self._server_loop = asyncio.new_event_loop()
-        asyncio.set_event_loop(self._server_loop)
+    def _run_server(self, host: Optional[str], port: int) -> None:
+        self._server_loop = loop = asyncio.new_event_loop()
+        asyncio.set_event_loop(loop)
 
-        self._server_loop.run_until_complete(self._server.start())
-        self._server_loop.run_forever()
+        loop.run_until_complete(self._server.start(host, port))
+        loop.run_forever()
 
     def _cmd(self):
         started = len(self._events) > 0
         while True:
             cmd = input()
-            if cmd.startswith('start'):
+            if cmd == 'q':
+                break
+            elif cmd.startswith('start'):
                 assert len(cmd.split()) == 2
 
                 initial_word = cmd.split()[1]
@@ -194,13 +203,27 @@ class ServerEngine:
                 sequence += 1
 
                 started = True
+            elif cmd.startswith('disconnect'):
+                assert len(cmd.split()) == 2
 
-    def run(self):
-        server_thread = Thread(target=self._run_server)
+                player = cmd.split()[1]
+                self._server.disconnect(player)
+
+    def run(self, host: Optional[str] = None, port: int = 5678) -> None:
+        server_thread = Thread(target=self._run_server, args=(host, port))
         cmd_thread = Thread(target=self._cmd)
 
         server_thread.start()
         cmd_thread.start()
 
         cmd_thread.join()
+
+        loop = self._server_loop
+        loop.call_soon_threadsafe(loop.stop)
+        while loop.is_running():
+            sleep(0.2)
+
+        loop.run_until_complete(self._server.stop())
+        loop.run_until_complete(loop.shutdown_asyncgens())
+        loop.close()
         server_thread.join()

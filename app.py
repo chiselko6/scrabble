@@ -17,7 +17,7 @@ def init_parser():
     client = subparsers.add_parser('player', help='Player part')
     client.add_argument('username', type=str, help='Player username')
     client.add_argument('host', type=str, help='Host address or IP to connect')
-    client.add_argument('port', type=str, help='Host port to connect')
+    client.add_argument('port', type=int, help='Host port to connect')
     client.add_argument('--debug', action='store_true', help='Show debug messages while playing')
     client.set_defaults(app='player')
 
@@ -30,10 +30,10 @@ if __name__ == '__main__':
 
     if args.app == 'host':
         server_engine = ServerEngine(game_id=args.game_id)
-        server_engine.run()
+        server_engine.run(host=args.host, port=args.port)
     elif args.app == 'player':
-        client_engine = ClientEngine(args.username, (args.host, args.port), debug=args.debug)
+        client_engine = ClientEngine(args.username, debug=args.debug)
 
-        t = Thread(target=client_engine.run)
+        t = Thread(target=client_engine.run, args=(args.host, args.port))
         t.start()
         t.join()
