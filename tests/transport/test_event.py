@@ -6,7 +6,8 @@ from scrabble.transport import EventMessage, EventMessagePayload, EventStatus
 
 
 @pytest.mark.parametrize("event,status", [
-    (GameStartEvent(sequence=1, timestamp=10, params=GameStartParams(player_to_start="user1")), EventStatus.REQUESTED),
+    (GameStartEvent(sequence=1, game_id=10, timestamp=10, params=GameStartParams(player_to_start="user1")),
+     EventStatus.REQUESTED),
 ])
 def test_event_request_serializer(event, status):
     event_msg = EventMessage(payload=EventMessagePayload(event=event), status=status)

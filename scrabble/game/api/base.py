@@ -26,4 +26,5 @@ class EventParams:
 class Event:
     params: EventParams
     sequence: int
+    game_id: int
     timestamp: int = field(default_factory=lambda: int(datetime.timestamp(datetime.now())))

@@ -16,12 +16,12 @@ from scrabble.serializers.game.api import EventSchema
 ])
 def test_player_move_serializer(username, words, exchange_letters):
     timestamp = int(datetime.timestamp(datetime.now()))
-    event = PlayerMoveEvent(timestamp=timestamp, sequence=4,
+    event = PlayerMoveEvent(timestamp=timestamp, sequence=4, game_id=15,
                             params=PlayerMoveParams(player=username, words=BoardWords(words=[
                                 BoardWord(w[0], w[1], w[2], w[3])
                                 for w in words
                             ]), exchange_letters=exchange_letters))
-    expected_dump = {"name": "PLAYER_MOVE", "timestamp": timestamp, "sequence": 4,
+    expected_dump = {"name": "PLAYER_MOVE", "timestamp": timestamp, "sequence": 4, "game_id": 15,
                      "params": {"player": username, "words": {"words": [
                          {"word": w[0], "start_x": w[1], "start_y": w[2], "direction": w[3].name}
                          for w in words

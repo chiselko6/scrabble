@@ -26,27 +26,28 @@ __all__ = [
 
 class ServerEngine:
 
-    def __init__(self, game_id: Optional[str] = None) -> None:
+    def __init__(self, load_game_id: Optional[int] = None) -> None:
         self._events: List[Event] = []
         self._players: MutableSet[str] = set()
         self._server = Server(on_new_conn=self._on_new_conn,
                               on_new_msg=self._on_new_msg,
                               on_end_conn=self._on_end_conn)
 
-        if game_id is not None:
-            self._load_events(game_id)
-            self._game_id = game_id
+        if load_game_id is not None:
+            self._game_id = load_game_id
+            self._load_events(load_game_id)
         else:
-            self._game_id = str(random.randint(1, 1000))
-            print(f'Starting game #{self._game_id}')
+            self._game_id = random.randint(1, 1000)
+
+        print(f'Starting game #{self._game_id}')
 
     @property
     def game_state(self) -> GameState:
-        return GameState(events=self._events)
+        return GameState(self._game_id, events=self._events)
 
     @property
-    def game_id(self) -> str:
-        return self._game_id
+    def game_id(self) -> int:
+        return self.game_state.game_id
 
     def _on_new_msg(self, player: str, msg: WebsocketMessage) -> None:
         if isinstance(msg, EventMessage):
@@ -63,6 +64,7 @@ class ServerEngine:
                         add_letters_event = PlayerAddLettersEvent(
                             params=PlayerAddLettersParams(player=player_username, letters=new_letters),
                             sequence=self.game_state.latest_event_sequence + 1,
+                            game_id=self.game_id,
                         )
                         self._apply_event(add_letters_event)
 
@@ -86,7 +88,7 @@ class ServerEngine:
     def _wrap_event(self, event: Event) -> EventMessage:
         return EventMessage(payload=EventMessagePayload(event=event), status=EventStatus.APPROVED)
 
-    def _get_file_path(self, game_id: str) -> str:
+    def _get_file_path(self, game_id: int) -> str:
         directory = '/tmp/scrabble/'
         filename = f'{game_id}_events.json'
         Path(directory).mkdir(parents=True, exist_ok=True)
@@ -98,7 +100,7 @@ class ServerEngine:
             serialized_events = [EventSchema().dump(event) for event in self._events]
             json.dump(serialized_events, fout)
 
-    def _load_events(self, game_id: str) -> None:
+    def _load_events(self, game_id: int) -> None:
         with open(self._get_file_path(game_id), 'r') as fin:
             serialized_events = json.load(fin)
             events = [EventSchema().load(event) for event in serialized_events]
@@ -112,7 +114,7 @@ class ServerEngine:
 
                 self._events.append(event)
 
-    def load_game(self, game_id: str) -> None:
+    def load_game(self, game_id: int) -> None:
         self._load_events(game_id)
         self._game_id = game_id
 
@@ -159,6 +161,7 @@ class ServerEngine:
                 sequence = 1
                 game_init_event = GameInitEvent(
                     sequence=sequence,
+                    game_id=self.game_id,
                     params=GameInitParams(
                         players=players,
                         letters=list(letter_bag),
@@ -189,6 +192,7 @@ class ServerEngine:
 
                 for player in players:
                     add_letters_event = PlayerAddLettersEvent(
+                        game_id=self.game_id,
                         sequence=sequence,
                         params=PlayerAddLettersParams(
                             player=player,
@@ -198,7 +202,9 @@ class ServerEngine:
                     self._apply_event(add_letters_event)
                     sequence += 1
 
-                game_start_event = GameStartEvent(params=GameStartParams(player_to_start=players[0]), sequence=sequence)
+                game_start_event = GameStartEvent(params=GameStartParams(player_to_start=players[0]),
+                                                  sequence=sequence,
+                                                  game_id=self.game_id)
                 self._apply_event(game_start_event)
                 sequence += 1
 
