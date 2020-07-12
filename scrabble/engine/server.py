@@ -51,7 +51,10 @@ class ServerEngine:
         return game_id
 
     def start_game(self, game_id: int, initial_word: str) -> None:
-        started = len(self._events.get(game_id, [])) > 0
+        if game_id not in self._events:
+            raise RuntimeError('Game was not initialized')
+
+        started = len(self._events[game_id]) > 0
         if started:
             raise RuntimeError('Game already started')
 
@@ -142,6 +145,9 @@ class ServerEngine:
     def _on_new_conn(self, player_id: PlayerConnectionID) -> None:
         username, game_id = player_id
 
+        if game_id not in self._events:
+            raise RuntimeError('Game was not initialized')
+
         print('New player', player_id)
         self._players.add(player_id)
 
@@ -174,18 +180,22 @@ class ServerEngine:
             json.dump(serialized_events, fout)
 
     def _load_events(self, game_id: int) -> None:
-        with open(self._get_file_path(game_id), 'r') as fin:
-            serialized_events = json.load(fin)
-            events = [EventSchema().load(event) for event in serialized_events]
-            for event in events:
-                try:
-                    self.get_game_state(game_id).apply_event(event)
-                except Exception as e:
-                    print('Error loading events', repr(e))
-                    del self._events[game_id]
-                    return
+        try:
+            with open(self._get_file_path(game_id), 'r') as fin:
+                serialized_events = json.load(fin)
+                events = [EventSchema().load(event) for event in serialized_events]
+                for event in events:
+                    try:
+                        self.get_game_state(game_id).apply_event(event)
+                    except Exception as e:
+                        print('Error loading events', repr(e))
+                        del self._events[game_id]
+                        return
 
-                self._events[game_id].append(event)
+                    self._events[game_id].append(event)
+
+        except FileNotFoundError:
+            raise RuntimeError('Cannot find the game')
 
     def _apply_event(self, game_id: int, event: Event) -> None:
         try:

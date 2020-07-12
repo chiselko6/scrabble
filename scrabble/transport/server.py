@@ -91,7 +91,18 @@ class Server:
             self.add_player_conn(player_id, ws)
 
             if self._on_new_conn is not None:
-                self._on_new_conn(player_id)
+                try:
+                    self._on_new_conn(player_id)
+                except Exception as e:
+                    print(f'Exception raised during new player registration: {repr(e)}')
+
+                    answer = AuthMessageResponse(payload=AuthMessageResponsePayload(ok=False))
+                    await self.send(ws, answer)
+
+                    self.remove_player_conn(player_id)
+
+                    player_conn.conn = None
+                    return False, player_conn
 
             answer = AuthMessageResponse(payload=AuthMessageResponsePayload(ok=True))
             await self.send(ws, answer)
