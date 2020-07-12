@@ -6,10 +6,12 @@ from marshmallow import Schema, fields
 from marshmallow.exceptions import ValidationError
 from marshmallow_enum import EnumField
 
-from scrabble.transport import (AuthMessageRequest, AuthMessageRequestPayload, AuthMessageResponse,
-                                AuthMessageResponsePayload, EndConnectionMessage, EndConnectionPayload, EventMessage,
-                                MessageType, NewConnectionMessage, NewConnectionPayload, WebsocketMessage,
-                                WebsocketMessagePayload)
+from scrabble.transport import MessageType
+from scrabble.transport.event import EventMessage
+from scrabble.transport.msg import (AuthMessageRequest, AuthMessageRequestPayload, AuthMessageResponse,
+                                    AuthMessageResponsePayload, EndConnectionMessage, EndConnectionPayload,
+                                    NewConnectionMessage, NewConnectionPayload, WebsocketMessage,
+                                    WebsocketMessagePayload)
 
 from .event import EventMessageSchema
 

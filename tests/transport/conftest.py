@@ -7,16 +7,16 @@ from scrabble.transport.msg import (AuthMessageRequest, AuthMessageRequestPayloa
 
 @fixture
 def auth_msg_request_obj():
-    def gen(username):
-        return AuthMessageRequest(payload=AuthMessageRequestPayload(username=username))
+    def gen(username, game_id):
+        return AuthMessageRequest(payload=AuthMessageRequestPayload(username=username, game_id=game_id))
 
     return gen
 
 
 @fixture
 def dumped_auth_msg_request():
-    def gen(username):
-        return {"type": "AUTH_REQUEST", "payload": {"username": username}}
+    def gen(username, game_id):
+        return {"type": "AUTH_REQUEST", "payload": {"username": username, "game_id": game_id}}
 
     return gen
 

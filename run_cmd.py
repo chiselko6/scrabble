@@ -11,7 +11,6 @@ def init_parser():
     server = subparsers.add_parser('host', help='Server part')
     server.add_argument('--port', type=str, help='Server port', default='5678')
     server.add_argument('--host', type=str, help='Server host', default=None)
-    server.add_argument('--load', type=int, help='Load specific game by its ID', dest='game_id')
     server.set_defaults(app='host')
 
     client = subparsers.add_parser('player', help='Player part')
@@ -30,8 +29,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     if args.app == 'host':
-        server_engine = ServerEngine(load_game_id=args.game_id)
-        server_engine.run(host=args.host, port=args.port)
+        server_engine = ServerEngine()
+        server_engine.run_with_cmd(host=args.host, port=args.port)
     elif args.app == 'player':
         client_engine = ClientEngine(args.username, args.game_id, debug=args.debug)
 

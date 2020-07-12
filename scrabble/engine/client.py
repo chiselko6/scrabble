@@ -3,12 +3,11 @@ import curses
 from threading import Thread
 from typing import Iterable, List, Tuple, cast
 
-from scrabble.client import Client
 from scrabble.game import BoardWord, BoardWords, GameState, WordDirection
 from scrabble.game.api import (Event, GameInitEvent, GameStartEvent, PlayerAddLettersEvent, PlayerMoveEvent,
                                PlayerMoveParams)
 from scrabble.gui.window import CallbackConfig, Window
-from scrabble.transport import (EndConnectionMessage, EventMessage, EventMessagePayload, EventStatus,
+from scrabble.transport import (Client, EndConnectionMessage, EventMessage, EventMessagePayload, EventStatus,
                                 NewConnectionMessage, WebsocketMessage)
 
 __all__ = [
@@ -27,7 +26,7 @@ class ClientEngine:
         if debug:
             self._window.set_debug()
 
-        self._client = Client(player, on_new_msg=self._on_client_msg,
+        self._client = Client(player, game_id, on_new_msg=self._on_client_msg,
                               on_connected=self._on_server_connected, on_disconnected=self._on_server_disconnected)
 
     @property

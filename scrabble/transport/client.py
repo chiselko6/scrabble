@@ -5,20 +5,33 @@ from typing import Callable, Optional, Tuple, cast
 import websockets
 
 from scrabble.serializers.transport.msg import WebsocketMessageSchema
-from scrabble.transport.msg import AuthMessageRequest, AuthMessageRequestPayload, AuthMessageResponse, WebsocketMessage
+
+from .msg import AuthMessageRequest, AuthMessageRequestPayload, AuthMessageResponse, WebsocketMessage
+
+__all__ = [
+    'Client',
+    'ConnectionCallback',
+    'WebsocketMessageCallback',
+]
+
+ConnectionCallback = Callable[[], None]
+WebsocketMessageCallback = Callable[[WebsocketMessage], None]
 
 
 class Client:
 
-    def __init__(self, username: str, *,
-                 on_new_msg: Optional[Callable[[WebsocketMessage], None]] = None,
-                 on_connected: Optional[Callable[[], None]] = None,
-                 on_disconnected: Optional[Callable[[], None]] = None):
-        self._running = True
+    def __init__(self, username: str, game_id: int, *,
+                 on_new_msg: Optional[WebsocketMessageCallback] = None,
+                 on_connected: Optional[ConnectionCallback] = None,
+                 on_disconnected: Optional[ConnectionCallback] = None):
         self._username = username
+        self._game_id = game_id
+
         self._on_new_msg = on_new_msg
         self._on_connected = on_connected
         self._on_disconnected = on_disconnected
+
+        self._running = True
 
     def to_ws_msg(self, msg: WebsocketMessage) -> str:
         return json.dumps(WebsocketMessageSchema().dump(msg))
@@ -51,7 +64,8 @@ class Client:
                         self._on_connected()
                     self._server = ws
 
-                    await self.send(AuthMessageRequest(AuthMessageRequestPayload(username=self._username)))
+                    await self.send(AuthMessageRequest(AuthMessageRequestPayload(username=self._username,
+                                                                                 game_id=self._game_id)))
                     raw_response = await ws.recv()
                     response_msg = self.from_ws_msg(cast(str, raw_response))
                     if isinstance(response_msg, AuthMessageResponse) and response_msg.payload.ok:
@@ -74,5 +88,6 @@ class Client:
                     self._on_disconnected()
 
     def stop(self) -> None:
-        self._conn_task.cancel()
+        if hasattr(self, '_conn_task'):
+            self._conn_task.cancel()
         self._running = False

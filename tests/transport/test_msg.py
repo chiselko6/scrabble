@@ -3,11 +3,15 @@ import pytest
 from scrabble.serializers.transport.msg import WebsocketMessageSchema
 
 
-@pytest.mark.parametrize("username", ["qu", "", "empty"])
-def test_auth_request_msg_serializer(username, auth_msg_request_obj, dumped_auth_msg_request):
-    dumped = WebsocketMessageSchema().dump(auth_msg_request_obj(username))
-    assert dumped == dumped_auth_msg_request(username)
-    assert WebsocketMessageSchema().load(dumped) == auth_msg_request_obj(username)
+@pytest.mark.parametrize("username,game_id", [
+    ("qu", 10),
+    ("", 20),
+    ("empty", 30),
+])
+def test_auth_request_msg_serializer(username, game_id, auth_msg_request_obj, dumped_auth_msg_request):
+    dumped = WebsocketMessageSchema().dump(auth_msg_request_obj(username, game_id))
+    assert dumped == dumped_auth_msg_request(username, game_id)
+    assert WebsocketMessageSchema().load(dumped) == auth_msg_request_obj(username, game_id)
 
 
 @pytest.mark.parametrize("ok", [True, False])
