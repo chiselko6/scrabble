@@ -118,7 +118,11 @@ However, regular arrow keys are available for these goals as well.
 
 ## Client-server
 
-The game should be hosted on a server, which should be available for connection by other players. The game has a simple CLI:
+The game should be hosted on a server, which should be available for connection by other players.
+
+### Local server
+
+For the local server the game can use a simple CLI:
 
     $ poetry run python run_cmd.py -h
     usage: scrabble [-h] {host,player} ...
@@ -152,3 +156,19 @@ Player1:
 Player2:
 
     $ poetry run python run_cmd.py player user1 100 100.10.20.30 5678
+
+### Web-server
+
+Another option is to deploy a separate web-server, which will be hosting all games.
+Such server will be running using [Flask](https://flask.palletsprojects.com/en/1.1.x/) and accept unauthorized requests "as admin".
+Such requests control the game flow (game creation, start).
+
+To start the application on a web-server, run the following:
+
+    $ env FLASK_APP=app.py poetry run python -m flask run
+
+Admin endpoints:
+- `/new` - create a new game. Response will contain a single integer with a created game_id.
+- `/start/<game_id>/<init_word>` - start a particular game with initial word `<init_word>`.
+- `/load/<game_id>` - load and continue a particular game.
+- `/healthcheck` - to know the state of the server.
