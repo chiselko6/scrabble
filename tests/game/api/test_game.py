@@ -7,26 +7,27 @@ from scrabble.game.api import GameInitEvent, GameInitParams, GameStartEvent, Gam
 from scrabble.serializers.game.api import EventSchema
 
 
-@pytest.mark.parametrize("players,letters,width,height,init_word,bonuses", [
-    (["user1", "user2"], ['a', 'b', 'c', 'd'], 20, 40,
+@pytest.mark.parametrize("game_id,players,letters,width,height,init_word,bonuses", [
+    (100, ["user1", "user2"], ['a', 'b', 'c', 'd'], 20, 40,
      BoardWord(word='qqq', start_x=3, start_y=4, direction=WordDirection.RIGHT),
      [Bonus(10, 10, 2)]),
-    (["user1", "user2", "user3"], [], 10, 10,
+    (1, ["user1", "user2", "user3"], [], 10, 10,
      BoardWord(word='init_word', start_x=2, start_y=1, direction=WordDirection.DOWN),
      [Bonus(2, 2, 1), Bonus(3, 4, 4)]),
-    (["user1"], ['a', 'a', 'a'], 100, 20, None, []),
+    (200, ["user1"], ['a', 'a', 'a'], 100, 20, None, []),
 ])
-def test_game_init_serializer(players, letters, width, height, init_word, bonuses):
+def test_game_init_serializer(game_id, players, letters, width, height, init_word, bonuses):
     timestamp = int(datetime.timestamp(datetime.now()))
     event = GameInitEvent(timestamp=timestamp,
                           sequence=1,
+                          game_id=game_id,
                           params=GameInitParams(
                               players=players,
                               letters=letters,
                               board_settings=BoardSettings(width=width, height=height,
                                                            init_word=init_word, bonuses=bonuses)
                           ))
-    expected_dump = {"name": "GAME_INIT", "timestamp": timestamp, "sequence": 1,
+    expected_dump = {"name": "GAME_INIT", "timestamp": timestamp, "sequence": 1, "game_id": game_id,
                      "params": {"players": players,
                                 "letters": letters,
                                 "board_settings": {"width": width, "height": height, "init_word": None, "bonuses": [
@@ -54,10 +55,10 @@ def test_game_init_serializer(players, letters, width, height, init_word, bonuse
 ])
 def test_game_start_serializer(player_to_start):
     timestamp = int(datetime.timestamp(datetime.now()))
-    event = GameStartEvent(timestamp=timestamp, sequence=2,
+    event = GameStartEvent(timestamp=timestamp, sequence=2, game_id=2,
                            params=GameStartParams(player_to_start=player_to_start))
     expected_dump = {"name": "GAME_START", "timestamp": timestamp, "sequence": 2,
-                     "params": {"player_to_start": player_to_start}}
+                     "game_id": 2, "params": {"player_to_start": player_to_start}}
 
     assert EventSchema().dump(event) == expected_dump
     assert EventSchema().load(expected_dump) == event

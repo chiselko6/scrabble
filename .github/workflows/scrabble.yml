@@ -25,13 +25,13 @@ jobs:
         poetry install
     - name: Lint with flake8
       run: |
-        flake8 scrabble/ tests/ app.py --count --show-source --statistics
+        flake8 scrabble/ tests/ run_cmd.py --count --show-source --statistics
     - name: Lint with isort
       run: |
         isort -c
     - name: Lint with mypy
       run: |
-        mypy --ignore-missing-imports scrabble/ tests/ app.py
+        mypy --ignore-missing-imports scrabble/ tests/ run_cmd.py
     - name: Test with pytest
       run: |
         python -m pytest tests/ -vvv

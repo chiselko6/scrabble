@@ -19,13 +19,14 @@ class GameState:
         GameStartEvent: 'game_start',
     }
 
-    def __init__(self, *, events: Optional[Iterable[Event]] = None):
+    def __init__(self, game_id: int, *, events: Optional[Iterable[Event]] = None):
         self._players_order: List[Player] = []
         self._players_by_username: MutableMapping[str, Player] = {}
         self._players_connected: MutableSet[str] = set()
         self._player_idx_turn: Optional[int] = None
         self._letters: List[str] = []
         self._sequence = 0
+        self._game_id = game_id
 
         if events:
             for event in events:
@@ -39,7 +40,14 @@ class GameState:
     def letters(self) -> List[str]:
         return list(self._letters)
 
+    @property
+    def game_id(self) -> int:
+        return self._game_id
+
     def apply_event(self, event: Event) -> None:
+        if self.game_id != event.game_id:
+            raise ValueError(f'Event belongs to the different game id ({self.game_id} != {event.game_id})')
+
         if self.latest_event_sequence + 1 != event.sequence:
             raise ValueError(f'Next event must have sequence = {self.latest_event_sequence + 1}, '
                              f'got {event.sequence}')

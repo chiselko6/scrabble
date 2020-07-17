@@ -2,7 +2,7 @@ from marshmallow import Schema, fields, post_load
 from marshmallow_enum import EnumField
 
 from scrabble.serializers.game.api import EventSchema
-from scrabble.transport import EventMessage, EventMessagePayload, EventStatus
+from scrabble.transport.event import EventMessage, EventMessagePayload, EventStatus
 
 __all__ = [
     'EventMessagePayloadSchema',

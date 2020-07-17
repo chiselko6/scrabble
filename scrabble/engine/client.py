@@ -3,12 +3,11 @@ import curses
 from threading import Thread
 from typing import Iterable, List, Tuple, cast
 
-from scrabble.client import Client
 from scrabble.game import BoardWord, BoardWords, GameState, WordDirection
 from scrabble.game.api import (Event, GameInitEvent, GameStartEvent, PlayerAddLettersEvent, PlayerMoveEvent,
                                PlayerMoveParams)
 from scrabble.gui.window import CallbackConfig, Window
-from scrabble.transport import (EndConnectionMessage, EventMessage, EventMessagePayload, EventStatus,
+from scrabble.transport import (Client, EndConnectionMessage, EventMessage, EventMessagePayload, EventStatus,
                                 NewConnectionMessage, WebsocketMessage)
 
 __all__ = [
@@ -18,20 +17,21 @@ __all__ = [
 
 class ClientEngine:
 
-    def __init__(self, player: str, *, debug: bool = False) -> None:
+    def __init__(self, player: str, game_id: int, *, debug: bool = False) -> None:
         self._events: List[Event] = []
         self._player = player
         self._players: List[str] = []
+        self._game_id = game_id
         self._window = Window(player, CallbackConfig(on_player_move=self._on_player_move))
         if debug:
             self._window.set_debug()
 
-        self._client = Client(player, on_new_msg=self._on_client_msg,
+        self._client = Client(player, game_id, on_new_msg=self._on_client_msg,
                               on_connected=self._on_server_connected, on_disconnected=self._on_server_disconnected)
 
     @property
     def game_state(self) -> GameState:
-        return GameState(events=self._events)
+        return GameState(self._game_id, events=self._events)
 
     def _on_server_connected(self) -> None:
         self._window.player_connected(self._player)
@@ -51,7 +51,8 @@ class ClientEngine:
         event = PlayerMoveEvent(params=PlayerMoveParams(player=self._player,
                                                         words=event_words,
                                                         exchange_letters=exchange_letters),
-                                sequence=self.game_state.latest_event_sequence + 1)
+                                sequence=self.game_state.latest_event_sequence + 1,
+                                game_id=self.game_state.game_id)
 
         try:
             print(f'Applying {event}')
@@ -102,6 +103,9 @@ class ClientEngine:
     def handle_game_event(self, event_msg: EventMessage) -> None:
         if event_msg.status == EventStatus.APPROVED:
             event = event_msg.payload.event
+
+            if event.game_id != self.game_state.game_id:
+                raise RuntimeError('Game ID is different')
             if event.sequence <= self.game_state.latest_event_sequence:
                 return
 

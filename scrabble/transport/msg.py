@@ -27,6 +27,7 @@ class WebsocketMessage:
 @dataclass
 class AuthMessageRequestPayload(WebsocketMessagePayload):
     username: str
+    game_id: int
 
 
 @dataclass
