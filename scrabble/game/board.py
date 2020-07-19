@@ -179,7 +179,7 @@ class Board:
         self._words = BoardWords()
 
         if self._settings.init_word is not None:
-            self.insert_word(self._settings.init_word)
+            self.insert_words(BoardWords(words=[self._settings.init_word]))
 
     def _validate_insertion(self, word: BoardWord) -> None:
         has_letter_outside_existing_words = False
@@ -243,19 +243,14 @@ class Board:
             self._words.add_word(word)
             inserted_words.add(idx)
 
+        self._cleanup_used_bonuses(words)
+
         return add_score
 
-    def insert_word(self, word: BoardWord) -> int:
-        if len(self._words) > 0:
-            has_intersection = any(w.intersects(word) for w in self._words)
-            if not has_intersection:
-                raise WordIntersectionError('New word must intersect with at least one existing word')
-
-        self._validate_insertion(word)
-        word_score = self.word_score(word)
-        self._words.add_word(word)
-
-        return word_score
+    def _cleanup_used_bonuses(self, words: BoardWords) -> None:
+        for word in words:
+            for x, y in word.path:
+                self._multiplier_map[x][y] = 1
 
     def word_score(self, word: BoardWord) -> int:
         total_multiplier = 0
