@@ -67,17 +67,17 @@ def test_board_settings_invalid():
 def test_board_insert_word():
     board = Board(settings=BoardSettings(width=100, height=100))
 
-    assert board.insert_word(BoardWord('abacaba', 10, 10, WordDirection.RIGHT)) == 7
+    assert board.insert_words(BoardWords(words=[BoardWord('abacaba', 10, 10, WordDirection.RIGHT)])) == 7
 
     with pytest.raises(WordIntersectionError):
-        board.insert_word(BoardWord('qqqqq', 10, 10, WordDirection.DOWN))
+        board.insert_words(BoardWords(words=[BoardWord('qqqqq', 10, 10, WordDirection.DOWN)]))
 
     with pytest.raises(WordIntersectionError):
-        board.insert_word(BoardWord('abracadabra', 10, 10, WordDirection.RIGHT))
+        board.insert_words(BoardWords(words=[BoardWord('abracadabra', 10, 10, WordDirection.RIGHT)]))
 
-    assert board.insert_word(BoardWord('abracadabra', 10, 10, WordDirection.DOWN)) == 11
-    assert board.insert_word(BoardWord('raise', 10, 12, WordDirection.RIGHT)) == 5
-    assert board.insert_word(BoardWord('custom', 13, 10, WordDirection.DOWN)) == 6
+    assert board.insert_words(BoardWords(words=[BoardWord('abracadabra', 10, 10, WordDirection.DOWN)])) == 11
+    assert board.insert_words(BoardWords(words=[BoardWord('raise', 10, 12, WordDirection.RIGHT)])) == 5
+    assert board.insert_words(BoardWords(words=[BoardWord('custom', 13, 10, WordDirection.DOWN)])) == 6
 
 
 @pytest.mark.parametrize("words,position,letter", [
@@ -174,18 +174,29 @@ def test_board_insert_words_invalid_without_init_word():
     board = Board(settings=BoardSettings(width=100, height=100))
 
     with pytest.raises(ValueError):
-        board.insert_word(BoardWord('wordwordword', 90, 90, WordDirection.RIGHT))
+        board.insert_words(BoardWords(words=[BoardWord('wordwordword', 90, 90, WordDirection.RIGHT)]))
     with pytest.raises(ValueError):
-        board.insert_word(BoardWord('wordwordword', 90, 90, WordDirection.DOWN))
+        board.insert_words(BoardWords(words=[BoardWord('wordwordword', 90, 90, WordDirection.DOWN)]))
 
 
 def test_board_insert_words_bonuses():
     board = Board(settings=BoardSettings(width=100, height=100, bonuses=[
         Bonus(location_x=10, location_y=10, multiplier=2), Bonus(location_x=12, location_y=10, multiplier=3)
     ]))
+    first_inserted_words = [
+        BoardWord('abacaba', 10, 10, WordDirection.DOWN),
+        BoardWord('abracadabra', 10, 10, WordDirection.RIGHT),
+    ]
 
-    assert board.insert_word(BoardWord('abacaba', 10, 10, WordDirection.DOWN)) == 7 * 2
-    assert board.insert_word(BoardWord('abracadabra', 10, 10, WordDirection.RIGHT)) == 11 * (2 + 3)
+    # inserted words in one move become bonused multiple times
+    assert board.insert_words(BoardWords(words=first_inserted_words)) == 7 * 2 + 11 * (2 + 3)
+
+    second_inserted_words = [
+        BoardWord('lua', 8, 10, WordDirection.RIGHT),
+        BoardWord('scrabble', 12, 8, WordDirection.DOWN),
+    ]
+    # inserted words in the following moves are not bonused
+    assert board.insert_words(BoardWords(words=second_inserted_words)) == 3 + 8
 
 
 @pytest.mark.parametrize("w1,w2,intersects", [
