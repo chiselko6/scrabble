@@ -4,6 +4,7 @@ from typing import Iterable, List, MutableMapping, MutableSet, Optional
 from .api import (Event, GameInitEvent, GameInitParams, GameStartEvent, GameStartParams, PlayerAddLettersEvent,
                   PlayerAddLettersParams, PlayerMoveEvent, PlayerMoveParams)
 from .board import Board
+from .constants import BONUS_FOR_ALL_LETTERS_USED, PLAYER_MAX_LETTERS
 from .player import Player
 
 __all__ = [
@@ -108,9 +109,14 @@ class GameState:
             raise ValueError('Player cannot do any moves now')
 
         played_letters = self._board.get_letters_to_insert_words(params.words)
+
         score = self._board.insert_words(params.words)
         player.add_score(score)
+        if len(played_letters) == PLAYER_MAX_LETTERS:
+            player.add_score(BONUS_FOR_ALL_LETTERS_USED)
+
         player.play_letters(played_letters + params.exchange_letters)
+
         self._player_idx_turn += 1
         self._player_idx_turn %= len(self._players_order)
 

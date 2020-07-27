@@ -56,6 +56,8 @@ If after that player _PlayerB_ inserts another word _scrabble_ with _r_ at the s
 In case a single word intersects with multiple bonuses, their values are summed together and result in the final bonus.
 Thus, a single word _sun_ having letter _s_ at bonus **2** and _n_ at bonus **4** would result in **18** points.
 
+Additional bonus of **5** points is scored when a player places all his letters onto the board in a single move.
+
 ### Sequence of play
 
 Before the game starts, the players (or admin) should decide on the initial word to be placed at the center of the board.
