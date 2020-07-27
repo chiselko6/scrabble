@@ -378,10 +378,13 @@ class Window:
         self._window.move(self._cursor_y, self._cursor_x)
 
     def _clear_player_values(self) -> None:
+        cleared_positions: MutableSet[Tuple[int, int]] = set()
+
         for word in self._temp_words:
             for ch, position in zip(word.letters, word.path):
-                if not self._grid_words.is_filled(position[0], position[1]):
+                if position not in cleared_positions and not self._grid_words.is_filled(position[0], position[1]):
                     self._player_letters.append(ch)
+                    cleared_positions.add(position)
 
         self._temp_words.clear()
         self._player_letters_to_remove.clear()
