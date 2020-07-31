@@ -188,8 +188,8 @@ def test_board_insert_words_bonuses():
         BoardWord('abracadabra', 10, 10, WordDirection.RIGHT),
     ]
 
-    # inserted words in one move become bonused multiple times
-    assert board.insert_words(BoardWords(words=first_inserted_words)) == 7 * 2 + 11 * (2 + 3)
+    # inserted words in a single move get bonused only for the first word
+    assert board.insert_words(BoardWords(words=first_inserted_words)) == 7 * 2 + 11 * 3
 
     second_inserted_words = [
         BoardWord('lua', 8, 10, WordDirection.RIGHT),
