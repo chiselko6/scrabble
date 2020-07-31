@@ -21,6 +21,7 @@ class WindowColor(Enum):
     PLAYER_STATUS = 8
     BONUS = 9
     TUTORIAL = 10
+    RECENT_CHANGE = 11
 
 
 @unique

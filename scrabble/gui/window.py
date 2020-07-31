@@ -128,6 +128,7 @@ class Window:
         self._show_debug = False
 
         self._grid_words = WindowWords()
+        self._recently_added_words = WindowWords()
         # added on player's turn
         self._temp_words = WindowWords()
         self._bonuses = WindowBonuses()
@@ -138,6 +139,7 @@ class Window:
         self._player_turn: Optional[str] = None
         self._players: List[str] = []
         self._players_scores = {player: 0 for player in self._players}
+        self._recent_player_score_change: Optional[Tuple[str, int]] = None
         self._players_connected: MutableSet[str] = set()
         self._player_letters: List[str] = []
         self._player_letters_to_remove: List[str] = []
@@ -168,6 +170,10 @@ class Window:
 
         self.draw()
 
+    def _clear_recent_changes(self) -> None:
+        self._recent_player_score_change = None
+        self._recently_added_words.clear()
+
     def register_callback(self, cb: CallbackConfig) -> None:
         self._callbacks.on_player_move = cb.on_player_move
 
@@ -191,7 +197,10 @@ class Window:
         self.draw()
 
     def update_player_score(self, player: str, new_score: int) -> None:
+        diff = new_score - self._players_scores[player]
+
         self._players_scores[player] = new_score
+        self._recent_player_score_change = (player, diff)
 
         self.draw()
 
@@ -214,7 +223,16 @@ class Window:
 
         self.draw()
 
-    def add_grid_word(self, start_x: int, start_y: int, word: str, direction: str) -> None:
+    def add_grid_words(self, words: Iterable[Tuple[int, int, str, str]]) -> None:
+        self._temp_words.clear()
+        self._clear_recent_changes()
+
+        for word in words:
+            self._add_grid_word(*word)
+
+        self.draw()
+
+    def _add_grid_word(self, start_x: int, start_y: int, word: str, direction: str) -> None:
         window_word = WindowWord()
 
         for offset, letter in enumerate(word):
@@ -231,9 +249,7 @@ class Window:
             window_word.letters.append(letter)
 
         self._grid_words.words.append(window_word)
-        self._temp_words.clear()
-
-        self.draw()
+        self._recently_added_words.words.append(window_word)
 
     def add_bonus(self, x: int, y: int, multiplier: int) -> None:
         self._bonuses.bonuses.append(WindowBonus(x=x, y=y, multiplier=multiplier))
@@ -287,6 +303,10 @@ class Window:
                     letter = self._temp_words.letter_at(x, y)
                     self._window.addch(grid_y, grid_x, letter,
                                        curses.color_pair(WindowColor.TEMP.value))
+                elif self._recently_added_words.is_filled(x, y):
+                    letter = self._recently_added_words.letter_at(x, y)
+                    self._window.addch(grid_y, grid_x, letter,
+                                       curses.color_pair(WindowColor.RECENT_CHANGE.value))
                 else:
                     ch = self._grid_words.letter_at(x, y)
                     if ch is not None:
@@ -304,10 +324,23 @@ class Window:
             player_attrs = curses.color_pair(color)
             if self._player_turn == player:
                 player_attrs |= curses.A_UNDERLINE | curses.A_BOLD
-            self._window.addstr(PLAYERS_STATUS_Y + idx * 2,
-                                PLAYERS_STATUS_X, player, player_attrs)
-            self._window.addstr(PLAYERS_STATUS_Y + idx * 2,
-                                PLAYERS_STATUS_X + len(player) + 2, str(self._players_scores[player]))
+
+            status_position_start = (PLAYERS_STATUS_X, PLAYERS_STATUS_Y + idx * 2)
+            player_score = self._players_scores[player]
+            self._window.addstr(status_position_start[1],
+                                status_position_start[0], player, player_attrs)
+            self._window.addstr(status_position_start[1],
+                                status_position_start[0] + len(player) + 2, str(player_score))
+
+            if self._recent_player_score_change is not None:
+                recent_player_changed, score_changed = self._recent_player_score_change
+
+                if player == recent_player_changed:
+                    self._window.addstr(
+                        status_position_start[1],
+                        status_position_start[0] + len(player) + 2 + len(str(player_score)) + 1,
+                        f'(+{score_changed})',
+                        curses.color_pair(WindowColor.RECENT_CHANGE.value))
 
     def draw_editor_mode(self):
         height, width = self._window.getmaxyx()
@@ -343,6 +376,7 @@ class Window:
         curses.init_pair(WindowColor.PLAYER_STATUS.value, curses.COLOR_YELLOW, curses.COLOR_BLACK)
         curses.init_pair(WindowColor.BONUS.value, curses.COLOR_BLACK, curses.COLOR_WHITE)
         curses.init_pair(WindowColor.TUTORIAL.value, curses.COLOR_BLUE, curses.COLOR_BLACK)
+        curses.init_pair(WindowColor.RECENT_CHANGE.value, curses.COLOR_CYAN, curses.COLOR_BLACK)
 
     def init_tutorial(self) -> None:
         text = [
@@ -467,12 +501,16 @@ class Window:
                         curses.beep()
                         continue
 
+                    self._clear_recent_changes()
+
                     self._editor_mode = EditorMode.DELETE_PLAYER_LETTERS
 
                 elif ch == ord('a'):
                     if not self._can_change_editor_mode:
                         curses.beep()
                         continue
+
+                    self._clear_recent_changes()
 
                     self._editor_mode = EditorMode.ADD_PLAYER_LETTERS
 
@@ -481,11 +519,19 @@ class Window:
                         curses.beep()
                         continue
 
+                    self._clear_recent_changes()
+
                     self._confirmation_callback = self._play
                     self._editor_mode = EditorMode.CONFIRMATION
                     self._show_confirmation_dialog = True
 
                 elif ch == ord('c'):
+                    if not self._can_change_editor_mode:
+                        curses.beep()
+                        continue
+
+                    self._clear_recent_changes()
+
                     self._confirmation_callback = self._clear_player_values
                     self._editor_mode = EditorMode.CONFIRMATION
                     self._show_confirmation_dialog = True
@@ -517,6 +563,8 @@ class Window:
                     else:
                         curses.beep()
                         continue
+
+                    self._clear_recent_changes()
 
                     self.toggle_editor_mode()
                     self._temp_words.words.append(WindowWord())
