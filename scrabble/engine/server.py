@@ -1,10 +1,8 @@
 import asyncio
 import json
 import random
-import string
 from itertools import chain
 from pathlib import Path
-from random import choices
 from threading import Thread
 from time import sleep
 from typing import List, MutableMapping, MutableSet, Optional
@@ -133,7 +131,9 @@ class ServerEngine:
 
                     game_state = self.get_game_state(game_id)
                     player_state = game_state.get_player_state(player_username)
-                    new_letters = choices(string.ascii_lowercase, k=PLAYER_MAX_LETTERS - len(player_state.letters))
+
+                    need_letters_count = PLAYER_MAX_LETTERS - len(player_state.letters)
+                    new_letters = game_state.letters[:need_letters_count]
                     if new_letters:
                         add_letters_event = PlayerAddLettersEvent(
                             params=PlayerAddLettersParams(player=player_username, letters=new_letters),

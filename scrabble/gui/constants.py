@@ -9,6 +9,9 @@ __all__ = [
 ]
 
 
+LOG_FILE = '/tmp/scrabble/logs.txt'
+
+
 @unique
 class WindowColor(Enum):
     CONNECTED_PLAYER = 1

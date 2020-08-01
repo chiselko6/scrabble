@@ -173,4 +173,25 @@ Admin endpoints:
 - `/new` - create a new game. Response will contain a single integer with a created game_id.
 - `/start/<game_id>/<init_word>` - start a particular game with initial word `<init_word>`.
 - `/load/<game_id>` - load and continue a particular game.
-- `/healthcheck` - to know the state of the server.
+
+## Debug
+
+The game writes down its logs into a logfile (at `/tmp/scrabble/logs.txt`) - it includes user GUI actions (keys pressed).
+Additionally, it is easy to "replay" the whole game having its "game" file (stored at `/tmp/scrabble/{game_id}_events.json`).
+This is achieved by `replay` mode:
+
+    $ poetry run python run_cmd.py replay -h
+    usage: scrabble replay [-h] [--sequence SEQUENCE] [--player PLAYER]
+                           game_id events_file
+
+    positional arguments:
+      game_id              Game ID
+      events_file          File with game events
+
+    optional arguments:
+      -h, --help           show this help message and exit
+      --sequence SEQUENCE  Event sequence to stop at
+      --player PLAYER      Player of the game
+
+Starting the game in this mode will apply all or some events from the file.
+Specifying a particular `player` will unlock the ability to interact with the board as if being that player in the game.

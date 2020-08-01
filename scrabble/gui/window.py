@@ -7,9 +7,9 @@ from typing import Callable, Iterable, List, MutableSet, Optional, Tuple
 
 from .components import TextBox
 from .constants import (CONFIRMATION_DIALOG_X, CONFIRMATION_DIALOG_Y, DEBUG_BOX_X, DEBUG_BOX_Y, GRID_HEIGHT, GRID_WIDTH,
-                        GRID_X, GRID_Y, LETTERS, LETTERS_OFFSET_X, LETTERS_OFFSET_Y, PLAYERS_STATUS_X, PLAYERS_STATUS_Y,
-                        SLEEP_BETWEEN_INPUT, TUTORIAL_BOX_X, TUTORIAL_BOX_Y, EditorMode, InsertDirection, KeyCode,
-                        WindowColor)
+                        GRID_X, GRID_Y, LETTERS, LETTERS_OFFSET_X, LETTERS_OFFSET_Y, LOG_FILE, PLAYERS_STATUS_X,
+                        PLAYERS_STATUS_Y, SLEEP_BETWEEN_INPUT, TUTORIAL_BOX_X, TUTORIAL_BOX_Y, EditorMode,
+                        InsertDirection, KeyCode, WindowColor)
 
 __all__ = [
     'Window',
@@ -257,6 +257,9 @@ class Window:
 
     def debug(self, msg: str) -> None:
         self._debug_box.add_line(msg)
+        with open(LOG_FILE, 'a') as fout:
+            fout.write(msg)
+
         self.draw()
 
     def update_player_letters(self, letters: Iterable[str]) -> None:
@@ -453,9 +456,9 @@ class Window:
                                       ''.join(word.letters), direction))
 
         cb = self._callbacks.on_player_move
-        assert cb is not None
 
-        cb(player_move_words, self._player_letters_to_remove)
+        if cb is not None:
+            cb(player_move_words, self._player_letters_to_remove)
 
     def run(self, window):
         self._running = True
