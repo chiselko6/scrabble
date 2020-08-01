@@ -222,35 +222,25 @@ class Board:
 
     def insert_words(self, words: BoardWords) -> int:
         add_score = 0
-        inserted_words = set()
 
-        # TODO: optimize
-        for _ in words:
+        for word in words:
             if len(self._words) > 0:
-                for idx, word in enumerate(words):
-                    if idx in inserted_words:
-                        continue
-                    has_intersection = any(w.intersects(word) for w in self._words)
-                    if has_intersection:
-                        break
-                else:
-                    raise WordIntersectionError('New words must intersect with existing words')
-            else:
-                idx, word = 0, words.words[0]
+                has_intersection = any(w.intersects(word) for w in self._words)
+                if not has_intersection:
+                    raise WordIntersectionError('New word must intersect with at least one existing word')
 
             self._validate_insertion(word)
+
             add_score += self.word_score(word)
             self._words.add_word(word)
-            inserted_words.add(idx)
 
-        self._cleanup_used_bonuses(words)
+            self._cleanup_used_bonuses(word)
 
         return add_score
 
-    def _cleanup_used_bonuses(self, words: BoardWords) -> None:
-        for word in words:
-            for x, y in word.path:
-                self._multiplier_map[x][y] = 1
+    def _cleanup_used_bonuses(self, word: BoardWord) -> None:
+        for x, y in word.path:
+            self._multiplier_map[x][y] = 1
 
     def word_score(self, word: BoardWord) -> int:
         total_multiplier = 0
