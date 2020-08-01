@@ -130,7 +130,14 @@ class ClientEngine:
 
         init_word = event.params.board_settings.init_word
         if init_word is not None:
-            self._window.add_grid_word(init_word.start_x, init_word.start_y, init_word.word, init_word.direction.value)
+            self._window.add_grid_words([
+                (
+                    init_word.start_x,
+                    init_word.start_y,
+                    init_word.word,
+                    init_word.direction.value,
+                ),
+            ])
 
         for bonus in event.params.board_settings.bonuses:
             self._window.add_bonus(bonus.location_x, bonus.location_y, bonus.multiplier)
@@ -143,8 +150,12 @@ class ClientEngine:
             self._window.update_player_letters(self.game_state.get_player_state(self._player).letters)
 
     def _gui_apply__player_move(self, event: PlayerMoveEvent) -> None:
-        for word in event.params.words:
-            self._window.add_grid_word(word.start_x, word.start_y, word.word, word.direction.value)
+        added_words = [
+            (word.start_x, word.start_y, word.word, word.direction.value)
+            for word in event.params.words
+        ]
+        self._window.add_grid_words(added_words)
+
         score = self.game_state.get_player_score(event.params.player)
         self._window.update_player_score(event.params.player, score)
         self._window.set_player_turn(cast(str, self.game_state.player_to_move))
