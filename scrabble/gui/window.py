@@ -198,12 +198,17 @@ class Window:
     def cancel_move(self) -> None:
         curses.beep()
 
+        cleared_positions: MutableSet[Tuple[int, int]] = set()
+
         for word in self._temp_words:
             while len(word) > 0:
                 letter_position = word.path[-1]
                 letter = word.pop_letter()
-                if not self._grid_words.is_filled(letter_position[0], letter_position[1]):
+                if letter_position not in cleared_positions and \
+                   not self._grid_words.is_filled(letter_position[0], letter_position[1]):
                     self._player_letters.append(letter)
+                    cleared_positions.add(letter_position)
+
         self._temp_words.clear()
         self._player_letters_to_remove.clear()
 
