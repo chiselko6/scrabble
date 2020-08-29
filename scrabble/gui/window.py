@@ -1,5 +1,6 @@
 import curses
 import sys
+from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass, field
 from time import sleep
@@ -615,6 +616,12 @@ class Window:
                             continue
 
                         if chr(ch) not in self._player_letters and existing_temp_letter is None:
+                            curses.beep()
+                            continue
+
+                        available_letters = Counter(self._player_letters)
+                        available_letters.subtract(Counter(self._player_letters_to_remove))
+                        if not available_letters.get(chr(ch)):
                             curses.beep()
                             continue
 
