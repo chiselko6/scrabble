@@ -174,6 +174,22 @@ Admin endpoints:
 - `/start/<game_id>/<init_word>` - start a particular game with initial word `<init_word>`.
 - `/load/<game_id>` - load and continue a particular game.
 
+### ngrok
+
+If you'd like to play a game with your friends away from your local network and you don't have a web-server configured, you may use [ngrok](https://ngrok.com/) tool.
+**ngrok** acts as a proxy-server for your host with public URL.
+**ngrok**'s free plan limits are enough for the game.
+All you need to do is to [install](https://dashboard.ngrok.com/get-started/setup) the client, and then [execute](https://ngrok.com/docs#tcp) it with specifying the port you run the host on: 
+    
+    ./ngrok tcp <port>
+
+This will start a console window with the traffic state.
+From that information you need to choose the public URL your process is proxied to - it is written in the section _Forwarding_ (it looks like _tcp://6.tcp.ngrok.io:12321_).
+Copy that URL and send it to your friends.
+Now when connecting to your host, they need to specify it:
+
+    $ poetry run python run_cmd.py player user1 100 tcp://6.tcp.ngrok.io 12321
+
 ## Debug
 
 The game writes down its logs into a logfile (at `/tmp/scrabble/logs.txt`) - it includes user GUI actions (keys pressed).
