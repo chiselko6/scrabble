@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from dataclasses import dataclass
 from typing import Callable, MutableMapping, Optional, Tuple, cast
 
@@ -44,6 +45,8 @@ class Server:
                  on_new_conn: Optional[ConnectionCallback] = None,
                  on_end_conn: Optional[ConnectionCallback] = None,
                  on_new_msg: Optional[WebsocketMessageCallback] = None):
+        self._logger = logging.getLogger()
+
         self._players_to_connections: MutableMapping[PlayerConnectionID, WebSocketServerProtocol] = {}
         self._connections_to_players: MutableMapping[WebSocketServerProtocol, PlayerConnectionID] = {}
         self._tasks_by_player: MutableMapping[PlayerConnectionID, asyncio.Task] = {}
@@ -83,7 +86,8 @@ class Server:
         username, game_id = player_id
 
         if player_id in self._players_to_connections:
-            print('Duplicated client')
+            self._logger.warning(f'Duplicated client {player_id}')
+
             await self.send(ws, AuthMessageResponse(payload=AuthMessageResponsePayload(ok=False)))
 
             return False, player_conn
@@ -93,8 +97,9 @@ class Server:
             if self._on_new_conn is not None:
                 try:
                     self._on_new_conn(player_id)
-                except Exception as e:
-                    print(f'Exception raised during new player registration: {repr(e)}')
+                except Exception:
+
+                    self._logger.exception('Exception raised during new player registration')
 
                     answer = AuthMessageResponse(payload=AuthMessageResponsePayload(ok=False))
                     await self.send(ws, answer)
@@ -163,19 +168,20 @@ class Server:
         await self.send(conn, msg)
 
     async def start(self, host: Optional[str] = None, port: int = 5678) -> None:
-        server = await websockets.serve(self.serve, host, port, ping_interval=1, ping_timeout=2)
-        print('Started', server, host, port)
+        await websockets.serve(self.serve, host, port, ping_interval=1, ping_timeout=2)
+
+        self._logger.info(f'Starting server at host={host} and port={port}')
 
     async def _recv(self, conn: WebSocketServerProtocol) -> None:
         try:
             async for raw_msg in conn:
                 msg = self.from_ws_msg(cast(str, raw_msg))
-                print('Recv', msg)
+                self._logger.debug(f'Received message: "{msg}"')
 
                 if self._on_new_msg is not None:
                     self._on_new_msg(self._connections_to_players[conn], msg)
-        except Exception as e:
-            print(f'Error raised {repr(e)}')
+        except Exception:
+            self._logger.exception(f'Error raised on new message "{msg}"')
 
     async def serve(self, websocket: WebSocketServerProtocol, path: str) -> None:
         ok, player_conn = await self.register(websocket, path)

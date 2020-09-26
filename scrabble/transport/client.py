@@ -1,5 +1,6 @@
 import asyncio
 import json
+import logging
 from typing import Callable, Optional, Tuple, cast
 
 import websockets
@@ -24,6 +25,8 @@ class Client:
                  on_new_msg: Optional[WebsocketMessageCallback] = None,
                  on_connected: Optional[ConnectionCallback] = None,
                  on_disconnected: Optional[ConnectionCallback] = None):
+        self._logger = logging.getLogger()
+
         self._username = username
         self._game_id = game_id
 
@@ -46,13 +49,13 @@ class Client:
         try:
             async for raw_msg in self._server:
                 msg = self.from_ws_msg(cast(str, raw_msg))
-                print('Recv', msg)
+                self._logger.debug(f'Received message "{msg}"')
                 if self._on_new_msg is not None:
                     self._on_new_msg(msg)
         except websockets.exceptions.ConnectionClosedError:
-            print('Server closed unexpectedly')
+            self._logger.exception('Server closed unexpectedly')
         except websockets.exceptions.ConnectionClosedOK:
-            print('Server closed successfully')
+            self._logger.info('Server closed successfully')
 
     async def start(self, addr: Tuple[str, int]) -> None:
         host, port = addr
@@ -69,19 +72,19 @@ class Client:
                     raw_response = await ws.recv()
                     response_msg = self.from_ws_msg(cast(str, raw_response))
                     if isinstance(response_msg, AuthMessageResponse) and response_msg.payload.ok:
-                        print('Authorized')
+                        self._logger.info('Authorized')
                         self._conn_task = asyncio.Task(self._consume())
                         await self._conn_task
                     else:
-                        print("Couldn't authorize")
+                        self._logger.info("Couldn't authorize")
                         break
 
-                    print('Disconnected')
+                    self._logger.info('Disconnected')
             except asyncio.CancelledError:
                 await ws.close()
                 break
-            except Exception as e:
-                print(f'Exception raised {e}')
+            except Exception:
+                self._logger.exception('Exception raised while connecting to the server')
                 await asyncio.sleep(2)
             finally:
                 if self._on_disconnected is not None:

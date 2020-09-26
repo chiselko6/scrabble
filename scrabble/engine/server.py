@@ -1,5 +1,7 @@
 import asyncio
 import json
+import logging
+import logging.config
 import random
 from itertools import chain
 from pathlib import Path
@@ -12,6 +14,7 @@ from scrabble.game.api import (Event, GameInitEvent, GameInitParams, GameStartEv
                                PlayerAddLettersEvent, PlayerAddLettersParams, PlayerMoveEvent)
 from scrabble.game.constants import PLAYER_MAX_LETTERS
 from scrabble.serializers.game.api import EventSchema
+from scrabble.settings import SERVER_LOGGING_CONFIG
 from scrabble.transport import (EventMessage, EventMessagePayload, EventStatus, PlayerConnectionID, Server,
                                 WebsocketMessage)
 
@@ -25,6 +28,9 @@ __all__ = [
 class ServerEngine:
 
     def __init__(self) -> None:
+        logging.config.dictConfig(SERVER_LOGGING_CONFIG)
+        self._logger = logging.getLogger()
+
         self._players: MutableSet[PlayerConnectionID] = set()
         self._server = Server(on_new_conn=self._on_new_conn,
                               on_new_msg=self._on_new_msg,
@@ -40,7 +46,7 @@ class ServerEngine:
 
         self._load_events(game_id)
 
-        print(f'Loaded game #{game_id}')
+        self._logger.info(f'Loaded game #{game_id}')
 
     def init_new_game(self) -> int:
         game_id = random.randint(1, 1000)
@@ -116,7 +122,7 @@ class ServerEngine:
                                           game_id=game_id)
         self._apply_event(game_id, game_start_event)
 
-        print(f'Started game #{game_id}')
+        self._logger.info(f'Started game #{game_id}')
 
     def _on_new_msg(self, player_id: PlayerConnectionID, msg: WebsocketMessage) -> None:
         username, game_id = player_id
@@ -148,14 +154,14 @@ class ServerEngine:
         if game_id not in self._events:
             raise RuntimeError('Game was not initialized')
 
-        print('New player', player_id)
+        self._logger.info(f'New player {player_id}')
         self._players.add(player_id)
 
         for event in self._events[game_id]:
             self._send(player_id, self._wrap_event(event))
 
     def _on_end_conn(self, player_id: PlayerConnectionID) -> None:
-        print('Disconnected player', player_id)
+        self._logger.info(f'Disconnected player {player_id}')
         self._players.remove(player_id)
 
     def _publish(self, game_id: int, msg: WebsocketMessage) -> None:
@@ -187,8 +193,8 @@ class ServerEngine:
                 for event in events:
                     try:
                         self.get_game_state(game_id).apply_event(event)
-                    except Exception as e:
-                        print('Error loading events', repr(e))
+                    except Exception:
+                        self._logger.exception('Error loading events')
                         del self._events[game_id]
                         return
 
@@ -200,8 +206,8 @@ class ServerEngine:
     def _apply_event(self, game_id: int, event: Event) -> None:
         try:
             self.get_game_state(game_id).apply_event(event)
-        except Exception as e:
-            print('Error applying event', repr(e))
+        except Exception:
+            self._logger.exception('Error applying event')
         else:
             self._events[game_id].append(event)
             self._save_event(game_id, event)
@@ -223,7 +229,7 @@ class ServerEngine:
 
             elif cmd == 'new':
                 game_id = self.init_new_game()
-                print(f'Initialized new game #{game_id}')
+                self._logger.info(f'Initialized new game #{game_id}')
 
             elif cmd.startswith('start'):
                 assert len(cmd.split()) == 3

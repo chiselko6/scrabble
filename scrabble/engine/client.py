@@ -1,5 +1,7 @@
 import asyncio
 import curses
+import logging
+import logging.config
 from threading import Thread
 from typing import Iterable, List, Tuple, cast
 
@@ -7,6 +9,7 @@ from scrabble.game import BoardWord, BoardWords, GameState, WordDirection
 from scrabble.game.api import (Event, GameInitEvent, GameStartEvent, PlayerAddLettersEvent, PlayerMoveEvent,
                                PlayerMoveParams)
 from scrabble.gui.window import CallbackConfig, Window
+from scrabble.settings import CLIENT_LOGGING_CONFIG
 from scrabble.transport import (Client, EndConnectionMessage, EventMessage, EventMessagePayload, EventStatus,
                                 NewConnectionMessage, WebsocketMessage)
 
@@ -18,6 +21,9 @@ __all__ = [
 class ClientEngine:
 
     def __init__(self, player: str, game_id: int, *, debug: bool = False) -> None:
+        logging.config.dictConfig(CLIENT_LOGGING_CONFIG)
+        self._logger = logging.getLogger()
+
         self._events: List[Event] = []
         self._player = player
         self._players: List[str] = []
@@ -55,11 +61,11 @@ class ClientEngine:
                                 game_id=self.game_state.game_id)
 
         try:
-            print(f'Applying {event}')
+            self._logger.debug(f'Applying event: {event}')
             self.game_state.apply_event(event)
-        except Exception as e:
+        except Exception:
             self._window.cancel_move()
-            print(repr(e))
+            self._logger.exception(f'Error on applying event {event}')
         else:
             self.send_event(event)
 
@@ -94,8 +100,8 @@ class ClientEngine:
     def _apply_event(self, event: Event) -> None:
         try:
             self.game_state.apply_event(event)
-        except Exception as e:
-            print('Error applying event', repr(e))
+        except Exception:
+            self._logger.exception(f'Error applying event {event}')
         else:
             self._events.append(event)
             self._gui_apply_event(event)
