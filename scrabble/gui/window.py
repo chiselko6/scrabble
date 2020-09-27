@@ -1,5 +1,5 @@
 import curses
-import sys
+import logging
 from collections import Counter
 from copy import deepcopy
 from dataclasses import dataclass, field
@@ -119,9 +119,24 @@ class WindowBonuses:
         return None
 
 
+class WindowDebugHandler(logging.StreamHandler):
+
+    def __init__(self, window: 'Window', *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+
+        self._window = window
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self._window._debug_box.add_line(str(record.msg))
+
+        self._window.draw()
+
+
 class Window:
 
     def __init__(self, player: str, callback_config: Optional[CallbackConfig] = None) -> None:
+        self._logger = logging.getLogger()
+
         self._editor_mode: EditorMode = EditorMode.VIEW
         self._can_change_editor_mode = False
         self._insert_mode_direction: Optional[InsertDirection] = None
@@ -150,14 +165,6 @@ class Window:
         self._show_confirmation_dialog = False
         self._confirmation_callback: Optional[Callable[[], None]] = None
 
-        def write(s):
-            ss = s.strip().strip('\n')
-            if ss:
-                self.debug(ss)
-            return len(s)
-        sys.stdout.write = write  # type: ignore
-        # sys.stderr.write = write
-
     @property
     def running(self) -> bool:
         return self._running
@@ -179,11 +186,15 @@ class Window:
         self._callbacks.on_player_move = cb.on_player_move
 
     def player_connected(self, player) -> None:
+        self._logger.info(f'Connected player "{player}"')
+
         self._players_connected.add(player)
 
         self.draw()
 
     def player_disconnected(self, player) -> None:
+        self._logger.info(f'Disconnected player "{player}"')
+
         if player in self._players_connected:
             self._players_connected.remove(player)
 
@@ -413,7 +424,7 @@ class Window:
             self._debug_box.height = window_height - self._debug_box.y - 1
             self._debug_box.draw(self._window)
 
-        self._tutorial_box.width = self._debug_box.x - self._tutorial_box.x - 2
+        self._tutorial_box.width = GRID_X + GRID_WIDTH * 2 - self._tutorial_box.x - 2
         self._tutorial_box.height = window_height - self._tutorial_box.y - 1
         self._tutorial_box.draw(self._window)
 
@@ -435,9 +446,11 @@ class Window:
     def _getch(self) -> int:
         while True:
             sleep(SLEEP_BETWEEN_INPUT)
+
             ch = self._window.getch()
             if ch == -1:
                 continue
+
             return ch
 
     def _play(self) -> None:
@@ -493,8 +506,13 @@ class Window:
         # start
         self.draw()
 
+        # this requires "initscr" to have been called
+        if self._show_debug:
+            self._logger.addHandler(WindowDebugHandler(self))
+
         while True:
             ch = self._getch()
+            self._logger.debug(f'<{self._editor_mode.name}>: "{chr(ch)}"({ch})')
 
             if self._editor_mode == EditorMode.VIEW:
                 if ch == ord('q'):
@@ -554,9 +572,9 @@ class Window:
                         curses.beep()
                         continue
 
-                    self.debug('Starting INSERT')
+                    self._logger.debug(f'<{self._editor_mode.name}>: Starting <INSERT>')
                     ch = self._getch()
-                    self.debug(f'INSERT: got {ch}')
+                    self._logger.debug(f'<{self._editor_mode.name}>: Choosing direction: "{chr(ch)}"({ch})')
                     if ch == 27:
                         continue
 
@@ -584,7 +602,6 @@ class Window:
                 else:
                     curses.beep()
             elif self._editor_mode == EditorMode.INSERT:
-                self.debug(f'Inserting {ch}')
                 if ch in (KeyCode.ENTER.value, curses.KEY_ENTER, KeyCode.ESCAPE.value):
                     self.toggle_editor_mode()
                     continue
@@ -604,24 +621,22 @@ class Window:
                                 self._cursor_y += 1
                     else:
                         existing_temp_letter = self._temp_words.letter_at(grid_x, grid_y)
-                        print('Having letter ', existing_temp_letter)
+                        self._logger.debug(f'Existing temp letter: "{existing_temp_letter or "_"}"')
                         if existing_temp_letter is not None:
+                            self._logger.debug(chr(ch))
+                            self._logger.debug(existing_temp_letter == chr(ch))
                             if existing_temp_letter != chr(ch):
+                                curses.beep()
+                                continue
+                        else:
+                            available_letters = Counter(self._player_letters)
+                            available_letters.subtract(Counter(self._player_letters_to_remove))
+                            if not available_letters.get(chr(ch)):
                                 curses.beep()
                                 continue
 
                         if (grid_x == GRID_WIDTH - 1 or grid_y == GRID_HEIGHT - 1) and \
                            self._temp_words.is_filled(grid_x, grid_y):
-                            curses.beep()
-                            continue
-
-                        if chr(ch) not in self._player_letters and existing_temp_letter is None:
-                            curses.beep()
-                            continue
-
-                        available_letters = Counter(self._player_letters)
-                        available_letters.subtract(Counter(self._player_letters_to_remove))
-                        if not available_letters.get(chr(ch)):
                             curses.beep()
                             continue
 
@@ -685,8 +700,6 @@ class Window:
             self.draw()
 
         self._running = False
-        sys.stdout = sys.__stdout__
-        sys.stderr = sys.__stderr__
 
     def toggle_editor_mode(self):
         if self._editor_mode == EditorMode.INSERT:

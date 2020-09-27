@@ -1,5 +1,6 @@
 import curses
 import json
+import logging
 from threading import Thread
 from typing import List, Optional, cast
 
@@ -16,6 +17,8 @@ __all__ = [
 class ReplayEngine:
 
     def __init__(self, game_id: int, events_filepath: str, player: str, sequence: Optional[int] = None) -> None:
+        self._logger = logging.getLogger()
+
         self._game_id = game_id
         self._events_filepath = events_filepath
         self._player = player
@@ -36,8 +39,8 @@ class ReplayEngine:
     def _apply_event(self, event: Event) -> None:
         try:
             self.game_state.apply_event(event)
-        except Exception as e:
-            print('Error applying event', repr(e))
+        except Exception:
+            self._logger.exception(f'Error applying event {event}')
         else:
             self._events.append(event)
             self._gui_apply_event(event)
