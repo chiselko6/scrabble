@@ -130,6 +130,8 @@ class ClientEngine:
             raise ValueError(f'Unknown event {event}')
 
     def _gui_apply__game_init(self, event: GameInitEvent) -> None:
+        self._window.set_language(event.params.lang)
+
         for player in event.params.players:
             self._window.add_player(player)
             self._players.append(player)

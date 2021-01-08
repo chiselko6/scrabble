@@ -7,16 +7,16 @@ from scrabble.game.api import GameInitEvent, GameInitParams, GameStartEvent, Gam
 from scrabble.serializers.game.api import EventSchema
 
 
-@pytest.mark.parametrize("game_id,players,letters,width,height,init_word,bonuses", [
-    (100, ["user1", "user2"], ['a', 'b', 'c', 'd'], 20, 40,
+@pytest.mark.parametrize("game_id,players,letters,lang,width,height,init_word,bonuses", [
+    (100, ["user1", "user2"], ['a', 'b', 'c', 'd'], "ru", 20, 40,
      BoardWord(word='qqq', start_x=3, start_y=4, direction=WordDirection.RIGHT),
      [Bonus(10, 10, 2)]),
-    (1, ["user1", "user2", "user3"], [], 10, 10,
+    (1, ["user1", "user2", "user3"], [], "en", 10, 10,
      BoardWord(word='init_word', start_x=2, start_y=1, direction=WordDirection.DOWN),
      [Bonus(2, 2, 1), Bonus(3, 4, 4)]),
-    (200, ["user1"], ['a', 'a', 'a'], 100, 20, None, []),
+    (200, ["user1"], ['a', 'a', 'a'], "en", 100, 20, None, []),
 ])
-def test_game_init_serializer(game_id, players, letters, width, height, init_word, bonuses):
+def test_game_init_serializer(game_id, players, letters, lang, width, height, init_word, bonuses):
     timestamp = int(datetime.timestamp(datetime.now()))
     event = GameInitEvent(timestamp=timestamp,
                           sequence=1,
@@ -24,12 +24,14 @@ def test_game_init_serializer(game_id, players, letters, width, height, init_wor
                           params=GameInitParams(
                               players=players,
                               letters=letters,
+                              lang=lang,
                               board_settings=BoardSettings(width=width, height=height,
                                                            init_word=init_word, bonuses=bonuses)
                           ))
     expected_dump = {"name": "GAME_INIT", "timestamp": timestamp, "sequence": 1, "game_id": game_id,
                      "params": {"players": players,
                                 "letters": letters,
+                                "lang": lang,
                                 "board_settings": {"width": width, "height": height, "init_word": None, "bonuses": [
                                     {
                                         "location_x": bonus.location_x,

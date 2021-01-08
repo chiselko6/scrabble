@@ -18,7 +18,7 @@ from scrabble.settings import SERVER_LOGGING_CONFIG
 from scrabble.transport import (EventMessage, EventMessagePayload, EventStatus, PlayerConnectionID, Server,
                                 WebsocketMessage)
 
-from .constants import gen_english_letters_distribution
+from .constants import LETTERS_DISTRIBUTION
 
 __all__ = [
     'ServerEngine',
@@ -54,7 +54,7 @@ class ServerEngine:
 
         return game_id
 
-    def start_game(self, game_id: int, initial_word: str) -> None:
+    def start_game(self, game_id: int, initial_word: str, lang: str = 'en') -> None:
         if game_id not in self._events:
             raise RuntimeError('Game was not initialized')
 
@@ -70,7 +70,7 @@ class ServerEngine:
 
         board_width = 20
         board_height = 20
-        letter_bag = LetterBag(board_width * board_height, gen_english_letters_distribution())
+        letter_bag = LetterBag(board_width * board_height, LETTERS_DISTRIBUTION[lang])
         bonuses_left_top_positions = ((5, 5, 3), (7, 7, 2))
 
         sequence = 1
@@ -80,6 +80,7 @@ class ServerEngine:
             params=GameInitParams(
                 players=players,
                 letters=list(letter_bag),
+                lang=lang,
                 board_settings=BoardSettings(
                     width=board_width,
                     height=board_height,
@@ -222,22 +223,37 @@ class ServerEngine:
         loop.run_forever()
 
     def _cmd(self):
+        help_msg = (
+            'new - Initialize new game\n'
+            'start <game_id> <initial_word> [lang=en] - Start specified game '
+            'with initial word (without spaces) and use language <lang> (available "ru" and "en")\n'
+            'load <game_id> - Load and start specified game\n'
+            'disconnect <game_id> <player> - Disconnect specified player\n'
+        )
+        print(help_msg)
+
         while True:
             cmd = input()
             if cmd == 'q':
                 break
+
+            elif cmd in ('h', 'help'):
+                print(help_msg)
 
             elif cmd == 'new':
                 game_id = self.init_new_game()
                 self._logger.info(f'Initialized new game #{game_id}')
 
             elif cmd.startswith('start'):
-                assert len(cmd.split()) == 3
+                assert len(cmd.split()) in (3, 4)
 
                 game_id = int(cmd.split()[1])
                 initial_word = cmd.split()[2]
+                lang = 'en'
+                if len(cmd.split()) == 4:
+                    lang = cmd.split()[3]
 
-                self.start_game(game_id, initial_word)
+                self.start_game(game_id, initial_word, lang)
 
             elif cmd.startswith('load'):
                 assert len(cmd.split()) == 2
