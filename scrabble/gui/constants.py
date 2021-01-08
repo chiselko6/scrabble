@@ -1,4 +1,6 @@
+import curses
 import string
+from collections import namedtuple
 from enum import Enum, unique
 
 __all__ = [
@@ -6,6 +8,8 @@ __all__ = [
     'EditorMode',
     'InsertDirection',
     'KeyCode',
+    'ActionChars',
+    'CONTROLS',
 ]
 
 
@@ -48,8 +52,6 @@ class KeyCode(Enum):
     ESCAPE = 27
     BACKSPACE = 8
     DELETE = 127
-    APPROVE = ord('y')
-    REJECT = ord('n')
 
 
 GRID_WIDTH = 20
@@ -76,6 +78,45 @@ PLAYERS_STATUS_Y = 4
 CONFIRMATION_DIALOG_X = 5
 CONFIRMATION_DIALOG_Y = GRID_Y + GRID_HEIGHT + 15
 
-LETTERS = set(ord(ch) for ch in string.ascii_uppercase + string.ascii_lowercase)
+LETTERS = {
+    'en': set(ord(ch) for ch in string.ascii_uppercase + string.ascii_lowercase),
+    'ru': set(map(ord, 'АаБбВвГгДдЕеЖжЗзИиЙйКкЛлМмНнОоПпРрСсТтУуФфХхЦцЧчШшЩщЪъЫыЬьЭэЮюЯя')),
+}
 
 SLEEP_BETWEEN_INPUT = 0.01  # sec
+
+
+ActionChars = namedtuple('ActionChars', ['close', 'delete', 'add_player_letters', 'save',
+                                         'cancel', 'move_up', 'move_down', 'move_left',
+                                         'move_right', 'insert', 'confirm', 'reject'])
+
+CONTROLS = {
+    'en': ActionChars(
+        close={'q'},
+        delete={'d'},
+        add_player_letters={'a'},
+        save={'s'},
+        cancel={'c'},
+        move_up={chr(curses.KEY_UP), 'k'},
+        move_down={chr(curses.KEY_DOWN), 'j'},
+        move_left={chr(curses.KEY_LEFT), 'h'},
+        move_right={chr(curses.KEY_RIGHT), 'l'},
+        insert={'i', chr(curses.KEY_ENTER), chr(KeyCode.ENTER.value)},
+        confirm={'y'},
+        reject={'n'},
+    ),
+    'ru': ActionChars(
+        close={'я'},
+        delete={'у'},
+        add_player_letters={'м'},
+        save={'с'},
+        cancel={'о'},
+        move_up={chr(curses.KEY_UP)},
+        move_down={chr(curses.KEY_DOWN)},
+        move_left={chr(curses.KEY_LEFT)},
+        move_right={chr(curses.KEY_RIGHT)},
+        insert={'в', chr(curses.KEY_ENTER), chr(KeyCode.ENTER.value)},
+        confirm={'д'},
+        reject={'н'},
+    ),
+}

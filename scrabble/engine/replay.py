@@ -1,6 +1,7 @@
 import curses
 import json
 import logging
+import logging.config
 from threading import Thread
 from typing import List, Optional, cast
 
@@ -8,6 +9,7 @@ from scrabble.game import GameState
 from scrabble.game.api import Event, GameInitEvent, GameStartEvent, PlayerAddLettersEvent, PlayerMoveEvent
 from scrabble.gui.window import CallbackConfig, Window
 from scrabble.serializers.game.api import EventSchema
+from scrabble.settings import REPLAY_LOGGING_CONFIG
 
 __all__ = [
     'ReplayEngine',
@@ -17,6 +19,7 @@ __all__ = [
 class ReplayEngine:
 
     def __init__(self, game_id: int, events_filepath: str, player: str, sequence: Optional[int] = None) -> None:
+        logging.config.dictConfig(REPLAY_LOGGING_CONFIG)
         self._logger = logging.getLogger()
 
         self._game_id = game_id
@@ -70,6 +73,8 @@ class ReplayEngine:
             raise ValueError(f'Unknown event {event}')
 
     def _gui_apply__game_init(self, event: GameInitEvent) -> None:
+        self._window.set_language(event.params.lang)
+
         for player in event.params.players:
             self._window.add_player(player)
 

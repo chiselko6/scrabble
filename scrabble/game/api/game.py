@@ -18,6 +18,7 @@ class GameInitParams(EventParams):
     players: List[str]
     board_settings: BoardSettings
     letters: List[str]
+    lang: str
 
 
 @dataclass

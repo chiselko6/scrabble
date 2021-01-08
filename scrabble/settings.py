@@ -86,3 +86,22 @@ CLIENT_LOGGING_CONFIG = {
     },
     'loggers': {'': {'handlers': ('log_file',), 'level': 'DEBUG'}},
 }
+
+REPLAY_LOGGING_CONFIG = {
+    'version': 1,
+    'formatters': {
+        'generic': {
+            'format': '%(levelname)-5.5s [%(name)s] %(message)s',
+            'datefmt': '%H:%M:%S',
+        },
+    },
+    'handlers': {
+        'log_file': {
+            'level': 'NOTSET',
+            'class': 'logging.FileHandler',
+            'formatter': 'generic',
+            'filename': LOG_FILE_PATH,
+        },
+    },
+    'loggers': {'': {'handlers': ('log_file',), 'level': 'DEBUG'}},
+}

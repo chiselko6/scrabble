@@ -44,6 +44,9 @@ class TextBox:
     def add_line(self, line: str) -> None:
         self._lines.append(line)
 
+    def clear(self) -> None:
+        self._lines = []
+
     def draw(self, window) -> None:
         trimmed_lines = []
         for line in self._lines:
