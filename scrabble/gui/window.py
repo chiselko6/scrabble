@@ -8,10 +8,10 @@ from time import sleep
 from typing import Callable, Iterable, List, MutableSet, Optional, Tuple
 
 from .components import TextBox
-from .constants import (CONFIRMATION_DIALOG_X, CONFIRMATION_DIALOG_Y, CONTROLS, DEBUG_BOX_X, DEBUG_BOX_Y, GRID_HEIGHT,
-                        GRID_WIDTH, GRID_X, GRID_Y, LETTERS, LETTERS_OFFSET_X, LETTERS_OFFSET_Y, LOG_FILE,
-                        PLAYERS_STATUS_X, PLAYERS_STATUS_Y, SLEEP_BETWEEN_INPUT, TUTORIAL_BOX_X, TUTORIAL_BOX_Y,
-                        EditorMode, InsertDirection, KeyCode, WindowColor)
+from .constants import (CONFIRMATION_DIALOG_X, CONFIRMATION_DIALOG_Y, CONTROLS, GRID_HEIGHT, GRID_WIDTH, GRID_X, GRID_Y,
+                        LETTERS, LETTERS_OFFSET_X, LETTERS_OFFSET_Y, PLAYERS_STATUS_X, PLAYERS_STATUS_Y,
+                        SLEEP_BETWEEN_INPUT, TUTORIAL_BOX_X, TUTORIAL_BOX_Y, EditorMode, InsertDirection, KeyCode,
+                        WindowColor)
 
 __all__ = [
     'Window',
@@ -120,19 +120,6 @@ class WindowBonuses:
         return None
 
 
-class WindowDebugHandler(logging.StreamHandler):
-
-    def __init__(self, window: 'Window', *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-        self._window = window
-
-    def emit(self, record: logging.LogRecord) -> None:
-        self._window._debug_box.add_line(str(record.msg))
-
-        self._window.draw()
-
-
 class Window:
 
     def __init__(self, player: str, callback_config: Optional[CallbackConfig] = None) -> None:
@@ -141,8 +128,6 @@ class Window:
         self._editor_mode: EditorMode = EditorMode.VIEW
         self._can_change_editor_mode = False
         self._insert_mode_direction: Optional[InsertDirection] = None
-
-        self._show_debug = False
 
         self._grid_words = WindowWords()
         self._recently_added_words = WindowWords()
@@ -174,9 +159,6 @@ class Window:
 
     def set_language(self, lang: str) -> None:
         self._language = lang
-
-    def set_debug(self) -> None:
-        self._show_debug = True
 
     def set_player_turn(self, player: str) -> None:
         self._player_turn = player
@@ -271,13 +253,6 @@ class Window:
 
     def add_bonus(self, x: int, y: int, multiplier: int) -> None:
         self._bonuses.bonuses.append(WindowBonus(x=x, y=y, multiplier=multiplier))
-        self.draw()
-
-    def debug(self, msg: str) -> None:
-        self._debug_box.add_line(msg)
-        with open(LOG_FILE, 'a') as fout:
-            fout.write(msg)
-
         self.draw()
 
     def update_player_letters(self, letters: Iterable[str]) -> None:
@@ -440,18 +415,7 @@ class Window:
         for line in text:
             self._tutorial_box.add_line(line)
 
-        window_height, window_width = self._window.getmaxyx()
-        self._tutorial_box.width = GRID_X + GRID_WIDTH * 2 - self._tutorial_box.x - 2
-        self._tutorial_box.height = window_height - self._tutorial_box.y - 1
         self._tutorial_box.draw(self._window)
-
-    def draw_debug(self) -> None:
-        window_height, window_width = self._window.getmaxyx()
-
-        if self._show_debug:
-            self._debug_box.width = window_width - self._debug_box.x - 1
-            self._debug_box.height = window_height - self._debug_box.y - 1
-            self._debug_box.draw(self._window)
 
     def draw(self) -> None:
         self._window.clear()
@@ -463,7 +427,6 @@ class Window:
         self.draw_player_letters()
         self.draw_confirmation_dialog()
         self.draw_tutorial()
-        self.draw_debug()
         self.draw_bonuses()
 
         self._window.move(self._cursor_y, self._cursor_x)
@@ -521,13 +484,6 @@ class Window:
         self._height, self._width = self._window.getmaxyx()
         self._cursor_y, self._cursor_x = GRID_Y, GRID_X
 
-        self._debug_box = TextBox(
-            x=DEBUG_BOX_X,
-            y=DEBUG_BOX_Y,
-            min_width=10,
-            min_height=GRID_HEIGHT,
-            attrs=curses.color_pair(WindowColor.TEMP.value),
-        )
         self._tutorial_box = TextBox(
             x=TUTORIAL_BOX_X,
             y=TUTORIAL_BOX_Y,
@@ -544,10 +500,6 @@ class Window:
 
         # start
         self.draw()
-
-        # this requires "initscr" to have been called
-        if self._show_debug:
-            self._logger.addHandler(WindowDebugHandler(self))
 
         while True:
             ch = self._getch()

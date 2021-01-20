@@ -28,7 +28,6 @@ class ReplayEngine:
         self._sequence = sequence
 
         self._window = Window(self._player, CallbackConfig(on_player_move=self._on_player_move))
-        self._window.set_debug()
         self._file_events: List[Event] = []
         self._events: List[Event] = []
 
