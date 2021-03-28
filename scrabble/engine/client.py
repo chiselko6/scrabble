@@ -20,7 +20,7 @@ __all__ = [
 
 class ClientEngine:
 
-    def __init__(self, player: str, game_id: int, *, debug: bool = False) -> None:
+    def __init__(self, player: str, game_id: int) -> None:
         logging.config.dictConfig(CLIENT_LOGGING_CONFIG)
         self._logger = logging.getLogger()
 
@@ -29,8 +29,6 @@ class ClientEngine:
         self._players: List[str] = []
         self._game_id = game_id
         self._window = Window(player, CallbackConfig(on_player_move=self._on_player_move))
-        if debug:
-            self._window.set_debug()
 
         self._client = Client(player, game_id, on_new_msg=self._on_client_msg,
                               on_connected=self._on_server_connected, on_disconnected=self._on_server_disconnected)
@@ -130,6 +128,8 @@ class ClientEngine:
             raise ValueError(f'Unknown event {event}')
 
     def _gui_apply__game_init(self, event: GameInitEvent) -> None:
+        self._window.set_language(event.params.lang)
+
         for player in event.params.players:
             self._window.add_player(player)
             self._players.append(player)

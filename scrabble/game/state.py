@@ -26,6 +26,7 @@ class GameState:
         self._players_connected: MutableSet[str] = set()
         self._player_idx_turn: Optional[int] = None
         self._letters: List[str] = []
+        self._language: Optional[str] = None
         self._sequence = 0
         self._game_id = game_id
 
@@ -44,6 +45,10 @@ class GameState:
     @property
     def game_id(self) -> int:
         return self._game_id
+
+    @property
+    def language(self) -> Optional[str]:
+        return self._language
 
     def apply_event(self, event: Event) -> None:
         if self.game_id != event.game_id:
@@ -81,8 +86,8 @@ class GameState:
 
     def event__game_init(self, params: GameInitParams) -> None:
         self._board = Board(params.board_settings)
-
         self._letters = list(params.letters)
+        self._language = params.lang
 
         for username in params.players:
             player = Player(username=username)
