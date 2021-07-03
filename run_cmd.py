@@ -18,7 +18,6 @@ def init_parser():
     client.add_argument('game_id', type=int, help='Game ID')
     client.add_argument('host', type=str, help='Host address or IP to connect')
     client.add_argument('port', type=int, help='Host port to connect')
-    client.add_argument('--debug', action='store_true', help='Show debug messages while playing')
     client.set_defaults(mode='player')
 
     tester = subparsers.add_parser('replay', help='Replay game events')
@@ -39,7 +38,7 @@ if __name__ == '__main__':
         server_engine = ServerEngine()
         server_engine.run_with_cmd(host=args.host, port=args.port)
     elif args.mode == 'player':
-        client_engine = ClientEngine(args.username, args.game_id, debug=args.debug)
+        client_engine = ClientEngine(args.username, args.game_id)
 
         t = Thread(target=client_engine.run, args=(args.host, args.port))
         t.start()

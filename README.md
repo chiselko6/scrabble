@@ -1,12 +1,21 @@
-# Scrabble
+```
+     _______.  ______ .______           ___      .______   .______    __       _______
+    /       | /      ||   _  \         /   \     |   _  \  |   _  \  |  |     |   ____|
+   |   (----`|  ,----'|  |_)  |       /  ^  \    |  |_)  | |  |_)  | |  |     |  |__
+    \   \    |  |     |      /       /  /_\  \   |   _  <  |   _  <  |  |     |   __|
+.----)   |   |  `----.|  |\  \----. /  _____  \  |  |_)  | |  |_)  | |  `----.|  |____
+|_______/     \______|| _| `._____|/__/     \__\ |______/  |______/  |_______||_______|
+```
 
 This is an implementation of a popular game [Scrabble](https://en.wikipedia.org/wiki/Scrabble). 
+
+![User field preview](./static/field.png)
 
 ## Technical 
 
 This project utilizes Python [asyncio](https://docs.python.org/3/library/asyncio.html) library.
-Clients talk to each other via websockets through the server.
-Currently, the clients can send messages only to the server directly, which can publish its message or answer back.
+Clients talk to each other via websockets through the server, thus the system is centralized.
+Currently, the clients can send messages only to the server directly, which can publish their messages or answer back.
 The server tracks clients' connection state and verifies players' moves (right now it autoapproves them).
 Clients and the server exchange information via messages, which are split into game events and other messages.
 Game events define all changes of the game state, non-game messages include messages of player connection/disconnection, authorization.
@@ -19,10 +28,10 @@ GUI object will send user actions to the server via its own client and vice vers
 Player's GUI object and the client run in a single process, but in different threads. The server requires its own process.
 
 While the server is running, every client can authorize to play a particular game (specified by `game_id`).
-Before `GameInitEvent` is emitted, all connected to the game players will be playing it.
-During the game in case some player gets disconnected, it can still reconnect to the game.
+Before `GameInitEvent` is emitted, all players connected to the game (anytime before) will be playing it.
+In case any player gets disconnected during the game, it can still reconnect back.
 
-Each game is recorded (flushed to the file at `/tmp`) with its own ID.
+Each game is recorded (flushed to the file at `/tmp/scrabble`) with its own ID.
 In case anything happens and the server fails, it can then reload the saved the game and continue.
 
 ### Prerequisites
@@ -81,28 +90,36 @@ The game continues until one of the players firstly reaches some fixed number of
 
 ## Terminal client
 
+As of now two languages are supported: `en` and `ru`.
+Each language defines:
+- alphabet
+- letter distribution
+- control keys
+
+In the next sections control keys will be specified in the form of "**\<english letter\>**(**\<russion letter\>**)".
+
 ### Modes
 
 GUI of the game represents a terminal window with key shortcuts to do the moves.
 When playing, the player is in one of the following modes:
 - _VIEW_ mode. This mode is the default mode, meaning that quiting the other ones will bring you back to the _VIEW_ mode.
 Here the player can move the cursor using [navigation keys](#navigation-keys),
-go to the _CONFIRMATION_ mode by pressing **s** to confirm the move (if it's his turn right now),
-insert the words to the board by pressing **i** and selecting the direction of insertion (**j** or **KEY_DOWN** for down and **l** or **KEY_RIGHT** for right) and go to the _INSERT_ mode (if it's his turn right now),
-mark some of his letters for exchange (proceeding to the _DELETE_PLAYER_LETTERS_ mode) by pressing **d** (available only when it's his turn right now).
-Moreover, the player can type **c**, which will cancel all existing progress (already inserted words and marked letters for exchange).
-- _INSERT_ mode. It is turned on by pressing **i** and selecting the direction of insertion from the _VIEW_ mode.
+go to the _CONFIRMATION_ mode by pressing **s**(**с**) ( to confirm the move (if it's his turn right now),
+insert the words to the board by pressing **i**(**в**) and selecting the direction of insertion (**j** or **KEY_DOWN** for down and **l** or **KEY_RIGHT** for right) and go to the _INSERT_ mode (if it's his turn right now),
+mark some of his letters for exchange (proceeding to the _DELETE_PLAYER_LETTERS_ mode) by pressing **d**(**у**) (available only when it's his turn right now).
+Moreover, the player can type **c**(**о**), which will cancel all existing progress (already inserted words and marked letters for exchange).
+- _INSERT_ mode. It is turned on by pressing **i**(**в**) and selecting the direction of insertion from the _VIEW_ mode.
 In this mode the player can type the letters to be inserted to the current cursor's cell.
 Only letters from the player's set or existing letters on the board are allowed.
 After finishing inserting the words, [quit the mode](#quit-the-mode).
 In order to clear recently inserted letters, press **BACKSPACE**.
-- _DELETE_PLAYER_LETTERS_ mode. It is started by pressing **d** from the _VIEW_ mode.
+- _DELETE_PLAYER_LETTERS_ mode. It is started by pressing **d**(**у**) from the _VIEW_ mode.
 The player can select the letters from his set to be exchanged (simply by typing the corresponding letters).
-- _APPEND_PLAYER_LETTERS_ mode. It is triggered by pressing **a** from the _VIEW_ mode.
+- _APPEND_PLAYER_LETTERS_ mode. It is triggered by pressing **a**(**м**) from the _VIEW_ mode.
 The player can select the letters from his set already marked to be exchanged and cancels it.
 So, if the player first marked letters "a", "b" and "c" for exchange, but then from this mode typed "a" and "b", then only letter "c" will be exchanged.
-- _CONFIRMATION_ mode. To start this mode, press **s** from the _VIEW_ mode.
-- This will suggest a choice of "yes" (**y**) and "no" (**n**) to apply the changes or not.
+- _CONFIRMATION_ mode. To start this mode, press **s**(**с**) from the _VIEW_ mode.
+- This will suggest a choice of "yes" (**y**(**д**)) and "no" (**n**(**н**)) to apply the changes or not.
 
 #### Quit the mode
 

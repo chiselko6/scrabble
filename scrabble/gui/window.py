@@ -2,15 +2,16 @@ import curses
 import logging
 from collections import Counter
 from copy import deepcopy
+from curses import error
 from dataclasses import dataclass, field
 from time import sleep
 from typing import Callable, Iterable, List, MutableSet, Optional, Tuple
 
 from .components import TextBox
-from .constants import (CONFIRMATION_DIALOG_X, CONFIRMATION_DIALOG_Y, DEBUG_BOX_X, DEBUG_BOX_Y, GRID_HEIGHT, GRID_WIDTH,
-                        GRID_X, GRID_Y, LETTERS, LETTERS_OFFSET_X, LETTERS_OFFSET_Y, LOG_FILE, PLAYERS_STATUS_X,
-                        PLAYERS_STATUS_Y, SLEEP_BETWEEN_INPUT, TUTORIAL_BOX_X, TUTORIAL_BOX_Y, EditorMode,
-                        InsertDirection, KeyCode, WindowColor)
+from .constants import (CONFIRMATION_DIALOG_X, CONFIRMATION_DIALOG_Y, CONTROLS, GRID_HEIGHT, GRID_WIDTH, GRID_X, GRID_Y,
+                        LETTERS, LETTERS_OFFSET_X, LETTERS_OFFSET_Y, PLAYERS_STATUS_X, PLAYERS_STATUS_Y,
+                        SLEEP_BETWEEN_INPUT, TUTORIAL_BOX_X, TUTORIAL_BOX_Y, EditorMode, InsertDirection, KeyCode,
+                        WindowColor)
 
 __all__ = [
     'Window',
@@ -119,19 +120,6 @@ class WindowBonuses:
         return None
 
 
-class WindowDebugHandler(logging.StreamHandler):
-
-    def __init__(self, window: 'Window', *args, **kwargs) -> None:
-        super().__init__(*args, **kwargs)
-
-        self._window = window
-
-    def emit(self, record: logging.LogRecord) -> None:
-        self._window._debug_box.add_line(str(record.msg))
-
-        self._window.draw()
-
-
 class Window:
 
     def __init__(self, player: str, callback_config: Optional[CallbackConfig] = None) -> None:
@@ -140,8 +128,6 @@ class Window:
         self._editor_mode: EditorMode = EditorMode.VIEW
         self._can_change_editor_mode = False
         self._insert_mode_direction: Optional[InsertDirection] = None
-
-        self._show_debug = False
 
         self._grid_words = WindowWords()
         self._recently_added_words = WindowWords()
@@ -160,6 +146,8 @@ class Window:
         self._player_letters: List[str] = []
         self._player_letters_to_remove: List[str] = []
 
+        self._language = 'en'
+
         self._callbacks = callback_config or CallbackConfig()
 
         self._show_confirmation_dialog = False
@@ -169,8 +157,8 @@ class Window:
     def running(self) -> bool:
         return self._running
 
-    def set_debug(self) -> None:
-        self._show_debug = True
+    def set_language(self, lang: str) -> None:
+        self._language = lang
 
     def set_player_turn(self, player: str) -> None:
         self._player_turn = player
@@ -267,13 +255,6 @@ class Window:
         self._bonuses.bonuses.append(WindowBonus(x=x, y=y, multiplier=multiplier))
         self.draw()
 
-    def debug(self, msg: str) -> None:
-        self._debug_box.add_line(msg)
-        with open(LOG_FILE, 'a') as fout:
-            fout.write(msg)
-
-        self.draw()
-
     def update_player_letters(self, letters: Iterable[str]) -> None:
         assert all([len(letter) == 1 for letter in letters])
 
@@ -364,7 +345,11 @@ class Window:
 
     def draw_confirmation_dialog(self):
         if self._show_confirmation_dialog:
-            desc = 'Confirm? Y / N'
+            if self._language == 'en':
+                desc = 'Confirm? Y / N'
+            else:
+                desc = 'Подтверждение? Д / Н'
+
             self._window.addstr(CONFIRMATION_DIALOG_Y,
                                 CONFIRMATION_DIALOG_X,
                                 desc,
@@ -393,8 +378,23 @@ class Window:
         curses.init_pair(WindowColor.TUTORIAL.value, curses.COLOR_BLUE, curses.COLOR_BLACK)
         curses.init_pair(WindowColor.RECENT_CHANGE.value, curses.COLOR_CYAN, curses.COLOR_BLACK)
 
-    def init_tutorial(self) -> None:
-        text = [
+    def draw_tutorial(self) -> None:
+        self._tutorial_box.clear()
+
+        ru_text = [
+            '<я>: Выйти из игры/закончить сессию ввода.',
+            '<у>: Начать _у_далять буквы игрока для обмена.',
+            '<м>: Начать возвращать удаленные для об_м_ена буквы игрока.',
+            '<с>: _С_охранить прогресс и сделать ход.',
+            '<о>: _О_тменить текущий прогресс. Будут удалены все временно введенные '
+            'буквы и помеченные для обмена буквы игрока.',
+            '<в>: Начать _в_водить буквы в игровое поле. Можно использовать ТОЛЬКО буквы '
+            'из текущего состояния. После нажатия клавиши, необходимо выбрать направление '
+            'вставки слова: <вниз> или <вправо> (стрелками).',
+            '<д>: Подтвердить выбор (_д_а).',
+            '<н>: Отменить выбор (_н_ет).',
+        ]
+        en_text = [
             '<d>: Start _d_eleting player letters for exchange.',
             '<i>: Start _i_nserting words to the grid. You can use ONLY '
             'the letters from your current state. After pressing <i>, you should '
@@ -406,12 +406,19 @@ class Window:
             '<y>: Confirm your move.',
             '<n>: Unconfirm your move.',
         ]
+
+        if self._language == 'ru':
+            text = ru_text
+        else:
+            text = en_text
+
         for line in text:
             self._tutorial_box.add_line(line)
 
+        self._tutorial_box.draw(self._window)
+
     def draw(self) -> None:
         self._window.clear()
-        window_height, window_width = self._window.getmaxyx()
 
         self.draw_grid()
         self.draw_player_status()
@@ -419,16 +426,9 @@ class Window:
         self.draw_editor_mode()
         self.draw_player_letters()
         self.draw_confirmation_dialog()
-        if self._show_debug:
-            self._debug_box.width = window_width - self._debug_box.x - 1
-            self._debug_box.height = window_height - self._debug_box.y - 1
-            self._debug_box.draw(self._window)
-
-        self._tutorial_box.width = GRID_X + GRID_WIDTH * 2 - self._tutorial_box.x - 2
-        self._tutorial_box.height = window_height - self._tutorial_box.y - 1
-        self._tutorial_box.draw(self._window)
-
+        self.draw_tutorial()
         self.draw_bonuses()
+
         self._window.move(self._cursor_y, self._cursor_x)
 
     def _clear_player_values(self) -> None:
@@ -447,10 +447,13 @@ class Window:
         while True:
             sleep(SLEEP_BETWEEN_INPUT)
 
-            ch = self._window.getch()
-            if ch == -1:
+            try:
+                ch = self._window.get_wch()
+            except error:
                 continue
 
+            if isinstance(ch, str):
+                return ord(ch)
             return ch
 
     def _play(self) -> None:
@@ -474,20 +477,13 @@ class Window:
         if cb is not None:
             cb(player_move_words, self._player_letters_to_remove)
 
-    def run(self, window):
+    def run(self, window) -> None:
         self._running = True
         self._window = window
         self._window.nodelay(True)
         self._height, self._width = self._window.getmaxyx()
         self._cursor_y, self._cursor_x = GRID_Y, GRID_X
 
-        self._debug_box = TextBox(
-            x=DEBUG_BOX_X,
-            y=DEBUG_BOX_Y,
-            min_width=10,
-            min_height=GRID_HEIGHT,
-            attrs=curses.color_pair(WindowColor.TEMP.value),
-        )
         self._tutorial_box = TextBox(
             x=TUTORIAL_BOX_X,
             y=TUTORIAL_BOX_Y,
@@ -501,24 +497,19 @@ class Window:
 
         curses.start_color()
         self.init_colors()
-        self.init_tutorial()
 
         # start
         self.draw()
-
-        # this requires "initscr" to have been called
-        if self._show_debug:
-            self._logger.addHandler(WindowDebugHandler(self))
 
         while True:
             ch = self._getch()
             self._logger.debug(f'<{self._editor_mode.name}>: "{chr(ch)}"({ch})')
 
             if self._editor_mode == EditorMode.VIEW:
-                if ch == ord('q'):
+                if chr(ch) in CONTROLS[self._language].close:
                     break
 
-                elif ch == ord('d'):
+                elif chr(ch) in CONTROLS[self._language].delete:
                     if not self._can_change_editor_mode:
                         curses.beep()
                         continue
@@ -527,7 +518,7 @@ class Window:
 
                     self._editor_mode = EditorMode.DELETE_PLAYER_LETTERS
 
-                elif ch == ord('a'):
+                elif chr(ch) in CONTROLS[self._language].add_player_letters:
                     if not self._can_change_editor_mode:
                         curses.beep()
                         continue
@@ -536,7 +527,7 @@ class Window:
 
                     self._editor_mode = EditorMode.ADD_PLAYER_LETTERS
 
-                elif ch == ord('s'):
+                elif chr(ch) in CONTROLS[self._language].save:
                     if not self._can_change_editor_mode:
                         curses.beep()
                         continue
@@ -547,7 +538,7 @@ class Window:
                     self._editor_mode = EditorMode.CONFIRMATION
                     self._show_confirmation_dialog = True
 
-                elif ch == ord('c'):
+                elif chr(ch) in CONTROLS[self._language].cancel:
                     if not self._can_change_editor_mode:
                         curses.beep()
                         continue
@@ -558,16 +549,16 @@ class Window:
                     self._editor_mode = EditorMode.CONFIRMATION
                     self._show_confirmation_dialog = True
 
-                elif ch in (curses.KEY_DOWN, ord('j')):
+                elif chr(ch) in CONTROLS[self._language].move_down:
                     self._cursor_y += 1
-                elif ch in (curses.KEY_UP, ord('k')):
+                elif chr(ch) in CONTROLS[self._language].move_up:
                     self._cursor_y -= 1
-                elif ch in (curses.KEY_RIGHT, ord('l')):
+                elif chr(ch) in CONTROLS[self._language].move_right:
                     self._cursor_x += 2
-                elif ch in (curses.KEY_LEFT, ord('h')):
+                elif chr(ch) in CONTROLS[self._language].move_left:
                     self._cursor_x -= 2
 
-                elif ch in (ord('i'), curses.KEY_ENTER, KeyCode.ENTER.value):
+                elif chr(ch) in CONTROLS[self._language].insert:
                     if not self._can_change_editor_mode:
                         curses.beep()
                         continue
@@ -575,12 +566,12 @@ class Window:
                     self._logger.debug(f'<{self._editor_mode.name}>: Starting <INSERT>')
                     ch = self._getch()
                     self._logger.debug(f'<{self._editor_mode.name}>: Choosing direction: "{chr(ch)}"({ch})')
-                    if ch == 27:
+                    if ch == KeyCode.ESCAPE.value:
                         continue
 
-                    if ch in (curses.KEY_RIGHT, ord('l')):
+                    if chr(ch) in CONTROLS[self._language].move_right:
                         self._insert_direction = InsertDirection.RIGHT
-                    elif ch in (curses.KEY_DOWN, ord('j')):
+                    elif chr(ch) in CONTROLS[self._language].move_down:
                         self._insert_direction = InsertDirection.DOWN
                     else:
                         curses.beep()
@@ -592,8 +583,9 @@ class Window:
                     self._temp_words.words.append(WindowWord())
 
             elif self._editor_mode == EditorMode.CONFIRMATION:
-                if ch in (ord('y'), ord('n')):
-                    if ch == ord('y'):
+                if chr(ch) in CONTROLS[self._language].confirm.union(CONTROLS[self._language].reject):
+                    if chr(ch) in CONTROLS[self._language].confirm:
+                        assert self._confirmation_callback is not None
                         self._confirmation_callback()
                         self._confirmation_callback = None
 
@@ -606,7 +598,7 @@ class Window:
                     self.toggle_editor_mode()
                     continue
 
-                elif ch in LETTERS:
+                elif ch in LETTERS[self._language]:
                     grid_x, grid_y = (self._cursor_x - GRID_X) // 2, self._cursor_y - GRID_Y
 
                     grid_letter = self._grid_words.letter_at(grid_x, grid_y)
@@ -614,11 +606,16 @@ class Window:
                         if grid_letter != chr(ch):
                             curses.beep()
                         else:
-                            self._temp_words.words[-1].add_letter(grid_x, grid_y, chr(ch))
-                            if self._insert_direction == InsertDirection.RIGHT:
-                                self._cursor_x += 2
+                            if ((self._insert_direction == InsertDirection.RIGHT and grid_x == GRID_WIDTH - 1) or
+                                (self._insert_direction == InsertDirection.DOWN and grid_y == GRID_HEIGHT - 1)) and \
+                               self._temp_words.words[-1].is_filled(grid_x, grid_y):
+                                curses.beep()
                             else:
-                                self._cursor_y += 1
+                                self._temp_words.words[-1].add_letter(grid_x, grid_y, chr(ch))
+                                if self._insert_direction == InsertDirection.RIGHT:
+                                    self._cursor_x += 2
+                                else:
+                                    self._cursor_y += 1
                     else:
                         existing_temp_letter = self._temp_words.letter_at(grid_x, grid_y)
                         self._logger.debug(f'Existing temp letter: "{existing_temp_letter or "_"}"')
@@ -635,12 +632,13 @@ class Window:
                                 curses.beep()
                                 continue
 
-                        if (grid_x == GRID_WIDTH - 1 or grid_y == GRID_HEIGHT - 1) and \
-                           self._temp_words.is_filled(grid_x, grid_y):
+                        assert isinstance(self._insert_direction, InsertDirection)
+                        if ((self._insert_direction == InsertDirection.RIGHT and grid_x == GRID_WIDTH - 1) or
+                            (self._insert_direction == InsertDirection.DOWN and grid_y == GRID_HEIGHT - 1)) and \
+                           self._temp_words.words[-1].is_filled(grid_x, grid_y):
                             curses.beep()
                             continue
 
-                        assert isinstance(self._insert_direction, InsertDirection)
                         self._temp_words.words[-1].add_letter(grid_x, grid_y, chr(ch))
                         if existing_temp_letter is None:
                             self._player_letters.remove(chr(ch))
@@ -654,10 +652,14 @@ class Window:
                     assert isinstance(self._insert_direction, InsertDirection)
 
                     grid_x, grid_y = (self._cursor_x - GRID_X) // 2, self._cursor_y - GRID_Y
-                    if (grid_x == GRID_WIDTH - 1 or grid_y == GRID_HEIGHT - 1) and \
-                       self._temp_words.is_filled(grid_x, grid_y):
+                    if ((self._insert_direction == InsertDirection.RIGHT and grid_x == GRID_WIDTH - 1) or
+                        (self._insert_direction == InsertDirection.DOWN and grid_y == GRID_HEIGHT - 1)) and \
+                       self._temp_words.words[-1].is_filled(grid_x, grid_y):
                         letter = self._temp_words.words[-1].pop_letter(grid_x, grid_y)
-                        self._player_letters.append(letter)
+
+                        if not self._grid_words.is_filled(grid_x, grid_y) and \
+                           not self._temp_words.is_filled(grid_x, grid_y):
+                            self._player_letters.append(letter)
                     else:
                         if self._insert_direction == InsertDirection.RIGHT:
                             if self._temp_words.words[-1].is_filled(grid_x - 1, grid_y):
@@ -666,6 +668,8 @@ class Window:
                                 if not self._grid_words.is_filled(grid_x - 1, grid_y) and \
                                    not self._temp_words.is_filled(grid_x - 1, grid_y):
                                     self._player_letters.append(letter)
+                            else:
+                                curses.beep()
                         else:
                             if self._temp_words.words[-1].is_filled(grid_x, grid_y - 1):
                                 self._cursor_y -= 1
@@ -673,6 +677,8 @@ class Window:
                                 if not self._grid_words.is_filled(grid_x, grid_y - 1) and \
                                    not self._temp_words.is_filled(grid_x, grid_y - 1):
                                     self._player_letters.append(letter)
+                            else:
+                                curses.beep()
 
             elif self._editor_mode == EditorMode.DELETE_PLAYER_LETTERS:
                 if ch in (KeyCode.ESCAPE.value, KeyCode.ENTER.value):

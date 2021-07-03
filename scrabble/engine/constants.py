@@ -1,6 +1,41 @@
-def gen_english_letters_distribution():
-    # a bit modified from https://en.wikipedia.org/wiki/Letter_frequency
-    return {
+LETTERS_DISTRIBUTION = {
+    'ru': {
+        # a bit modified from https://ru.wikipedia.org/wiki/%D0%A7%D0%B0%D1%81%D1%82%D0%BE%D1%82%D0%BD%D0%BE%D1%81%D1%82%D1%8C  # noqa
+        'а': 80,
+        'б': 16,
+        'в': 45,
+        'г': 17,
+        'д': 30,
+        'е': 85,
+        'ж': 10,
+        'з': 17,
+        'и': 74,
+        'й': 12,
+        'к': 35,
+        'л': 44,
+        'м': 32,
+        'н': 67,
+        'о': 110,
+        'п': 28,
+        'р': 47,
+        'с': 55,
+        'т': 63,
+        'у': 26,
+        'ф': 3,
+        'х': 10,
+        'ц': 5,
+        'ч': 15,
+        'ш': 7,
+        'щ': 4,
+        'ъ': 1,
+        'ы': 19,
+        'ь': 17,
+        'э': 3,
+        'ю': 7,
+        'я': 20,
+    },
+    'en': {
+        # a bit modified from https://en.wikipedia.org/wiki/Letter_frequency
         'a': 85,
         'b': 15,
         'c': 22,
@@ -27,4 +62,5 @@ def gen_english_letters_distribution():
         'x': 20,
         'y': 20,
         'z': 10,
-    }
+    },
+}
