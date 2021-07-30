@@ -176,6 +176,19 @@ Player2:
 
     $ poetry run python run_cmd.py player user1 100 100.10.20.30 5678
 
+#### Docker way
+
+To run the app in docker, do the following:
+
+Run the server:
+
+    $ docker build -t scrabble:latest .
+    $ docker run --rm -it -p 5678:5678 scrabble:latest python run_cmd.py host
+
+Run the client:
+
+    $ docker run --rm -it scrabble:latest python run_cmd.py player <username> <game_id> host.docker.internal 5678
+
 ### Web-server
 
 Another option is to deploy a separate web-server, which will be hosting all games.
