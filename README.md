@@ -7,7 +7,7 @@
 |_______/     \______|| _| `._____|/__/     \__\ |______/  |______/  |_______||_______|
 ```
 
-This is an implementation of a popular game [Scrabble](https://en.wikipedia.org/wiki/Scrabble). 
+This is a custom implementation of a popular game [Scrabble](https://en.wikipedia.org/wiki/Scrabble). 
 
 ![User field preview](./static/field.png)
 
@@ -15,15 +15,14 @@ This is an implementation of a popular game [Scrabble](https://en.wikipedia.org/
 
 This project utilizes Python [asyncio](https://docs.python.org/3/library/asyncio.html) library.
 Clients talk to each other via websockets through the server, thus the system is centralized.
-Currently, the clients can send messages only to the server directly, which can publish their messages or answer back.
-The server tracks clients' connection state and verifies players' moves (right now it autoapproves them).
-Clients and the server exchange information via messages, which are split into game events and other messages.
+Currently, the clients can send messages only to the server directly, which can publish their messages to other clients or answer back.
+The server tracks clients' connection state and verifies players' moves (right now it autoapproves them, there is no verification of inserted words).
+Clients and the server exchange information via messages, which are split into game events and non-game messages.
 Game events define all changes of the game state, non-game messages include messages of player connection/disconnection, authorization.
 
 In order to play the game, there should be the following roles set up:
 - The server. It will be the publisher of messages and admin panel (it will create new games, start the games with some parameters).
 - The players. Each player has a GUI to interact with and a client connected to it and the server.
-GUI object will send user actions to the server via its own client and vice versa.
 
 Player's GUI object and the client run in a single process, but in different threads. The server requires its own process.
 
@@ -48,8 +47,8 @@ In case anything happens and the server fails, it can then reload the saved the 
 
 ## Rules
 
-In this game 2+ players score points by placing tiles with letters onto a game board (usually divided into a 15x15 grid of squares, but in this game it can be anything, which can fit the screen).
-The tiles must form words that, in crossword fashion, read left to right in rows or downward in columns, and be included in a standard dictionary or lexicon.
+In this game 2+ players score points by placing tiles with letters onto a game board (usually divided into a 15x15 grid of squares, but in this game it can be anything, which can fit the screen - with current default 20x20).
+The tiles must form words that, in crossword fashion, are to read left to right in rows or downward in columns, and be included in a standard dictionary or lexicon.
 
 ### Points
 
@@ -62,7 +61,8 @@ They are highlighted on the board and each of them specifies the multiplier.
 _Bonus_ squares multiply the number of points of the word, which was first placed onto it.
 So, if the player _PlayerA_ first inserted a word _word_ with letter _r_ to appear on a _bonus_ square with multiplier **3**, then he is awarded with **12** points.
 If after that player _PlayerB_ inserts another word _scrabble_ with _r_ at the same _bonus_ square, then he is awarded only with **7** points.
-In case a single word intersects with multiple bonuses, their values are summed together and result in the final bonus.
+
+In case a single word intersects multiple bonuses, their values are summed together and result in the final bonus.
 Thus, a single word _sun_ having letter _s_ at bonus **2** and _n_ at bonus **4** would result in **18** points.
 
 Additional bonus of **5** points is scored when a player places all his letters onto the board in a single move.
@@ -102,24 +102,28 @@ In the next sections control keys will be specified in the form of "**\<english 
 
 GUI of the game represents a terminal window with key shortcuts to do the moves.
 When playing, the player is in one of the following modes:
-- _VIEW_ mode. This mode is the default mode, meaning that quiting the other ones will bring you back to the _VIEW_ mode.
-Here the player can move the cursor using [navigation keys](#navigation-keys),
-go to the _CONFIRMATION_ mode by pressing **s**(**с**) ( to confirm the move (if it's his turn right now),
-insert the words to the board by pressing **i**(**в**) and selecting the direction of insertion (**j** or **KEY_DOWN** for down and **l** or **KEY_RIGHT** for right) and go to the _INSERT_ mode (if it's his turn right now),
-mark some of his letters for exchange (proceeding to the _DELETE_PLAYER_LETTERS_ mode) by pressing **d**(**у**) (available only when it's his turn right now).
-Moreover, the player can type **c**(**о**), which will cancel all existing progress (already inserted words and marked letters for exchange).
-- _INSERT_ mode. It is turned on by pressing **i**(**в**) and selecting the direction of insertion from the _VIEW_ mode.
+* _VIEW_ mode. This mode is the default mode, meaning that quiting the other ones will bring you back to the _VIEW_ mode.
+In this mode the player can do the following:
+    - move the cursor using [navigation keys](#navigation-keys);
+    - go to the _CONFIRMATION_ mode by pressing **s**(**с**) to confirm/save the move (if it's his turn right now);
+    - insert the words to the board by pressing **i**(**в**) and selecting the direction of insertion:
+        * **j** or **KEY_DOWN** for down or,
+        * **l** or **KEY_RIGHT** for right.
+    - go to the _INSERT_ mode (if it's his turn right now);
+    - mark some of his letters for exchange (proceeding to the _DELETE_PLAYER_LETTERS_ mode) by pressing **d**(**у**) (available only when it's his turn right now);
+    - cancel all existing progress (already inserted workds and marked letters for exchange) by typing **c**(**о**).
+* _INSERT_ mode. It is turned on by pressing **i**(**в**) and selecting the direction of insertion from the _VIEW_ mode.
 In this mode the player can type the letters to be inserted to the current cursor's cell.
 Only letters from the player's set or existing letters on the board are allowed.
 After finishing inserting the words, [quit the mode](#quit-the-mode).
 In order to clear recently inserted letters, press **BACKSPACE**.
-- _DELETE_PLAYER_LETTERS_ mode. It is started by pressing **d**(**у**) from the _VIEW_ mode.
-The player can select the letters from his set to be exchanged (simply by typing the corresponding letters).
-- _APPEND_PLAYER_LETTERS_ mode. It is triggered by pressing **a**(**м**) from the _VIEW_ mode.
-The player can select the letters from his set already marked to be exchanged and cancels it.
+* _DELETE_PLAYER_LETTERS_ mode. It is started by pressing **d**(**у**) from the _VIEW_ mode.
+The player can select the letters from his set to be exchanged by typing the corresponding letters.
+* _APPEND_PLAYER_LETTERS_ mode. It is triggered by pressing **a**(**м**) from the _VIEW_ mode.
+The player can select the letters from his set already marked to be exchanged and cancel it.
 So, if the player first marked letters "a", "b" and "c" for exchange, but then from this mode typed "a" and "b", then only letter "c" will be exchanged.
-- _CONFIRMATION_ mode. To start this mode, press **s**(**с**) from the _VIEW_ mode.
-- This will suggest a choice of "yes" (**y**(**д**)) and "no" (**n**(**н**)) to apply the changes or not.
+* _CONFIRMATION_ mode. To start this mode, press **s**(**с**) from the _VIEW_ mode.
+This will suggest a choice of "yes" (**y**(**д**)) and "no" (**n**(**н**)) to apply the changes or not.
 
 #### Quit the mode
 
@@ -141,7 +145,7 @@ The game should be hosted on a server, which should be available for connection 
 
 ### Local server
 
-For the local server the game can use a simple CLI:
+For the local server the game can use an existing CLI:
 
     $ poetry run python run_cmd.py -h
     usage: scrabble [-h] {host,player} ...
@@ -162,11 +166,19 @@ Additionally, all games are persisted on the filesystem, thus the server can loa
 The host waits until all players get connected, and then starts the game by typing `start <initial_word>` - all players will see an update with initialized grid.
 Status of connected/disconnected players are drawn in different colors (green and red) of their usernames.
 
-So a simple game with two players would look like this:
+So a regular game with two players would look like this:
 
 The server:
 
     $ poetry run python run_cmd.py host 100.10.20.30 5678 --load 100
+
+And follow the server help:
+```
+new - Initialize new game
+start <game_id> <initial_word> [lang=en] - Start specified game with initial word (without spaces) and use language <lang> (available "ru" and "en")
+load <game_id> - Load and start specified game
+disconnect <game_id> <player> - Disconnect specified player
+```
 
 Player1:
 
@@ -175,19 +187,6 @@ Player1:
 Player2:
 
     $ poetry run python run_cmd.py player user1 100 100.10.20.30 5678
-
-#### Docker way
-
-To run the app in docker, do the following:
-
-Run the server:
-
-    $ docker build -t scrabble:latest .
-    $ docker run --rm -it -p 5678:5678 scrabble:latest python run_cmd.py host
-
-Run the client:
-
-    $ docker run --rm -it scrabble:latest python run_cmd.py player <username> <game_id> host.docker.internal 5678
 
 ### Web-server
 
@@ -200,7 +199,7 @@ To start the application on a web-server, run the following:
     $ env FLASK_APP=app.py poetry run python -m flask run
 
 Admin endpoints:
-- `/new` - create a new game. Response will contain a single integer with a created game_id.
+- `/new` - create a new game. Response will contain a single integer with a created game id.
 - `/start/<game_id>/<init_word>` - start a particular game with initial word `<init_word>`.
 - `/load/<game_id>` - load and continue a particular game.
 
@@ -214,11 +213,25 @@ All you need to do is to [install](https://dashboard.ngrok.com/get-started/setup
     ./ngrok tcp <port>
 
 This will start a console window with the traffic state.
-From that information you need to choose the public URL your process is proxied to - it is written in the section _Forwarding_ (it looks like _tcp://6.tcp.ngrok.io:12321_).
+From that information you need to select the public URL your process is proxied to - it is written in the section _Forwarding_ (it looks like _tcp://6.tcp.ngrok.io:12321_).
 Copy that URL and send it to your friends.
 Now when connecting to your host, they need to specify it:
 
     $ poetry run python run_cmd.py player user1 100 tcp://6.tcp.ngrok.io 12321
+
+#### Docker way
+
+To run the app in docker, do the following:
+
+Run the server (mounting will allow to get access to the logs and game events on the host machine):
+
+    $ docker build -t scrabble:latest .
+    $ docker run --rm -it -p 5678:5678 --mount type=bind,source="$(pwd)"/__logs__,target=/tmp/scrabble/ scrabble:latest python run_cmd.py host --port 5678 --host 0.0.0.0
+
+Run the client (mounting will allow to collect client logs for debugging):
+
+    $ docker build -t scrabble:latest .
+    $ docker run --rm -it --network host --mount type=bind,source="$(pwd)"/__logs__,target=/tmp/scrabble/ scrabble:latest python run_cmd.py player <username> <game_id> <server_host> <server_port>
 
 ## Debug
 
